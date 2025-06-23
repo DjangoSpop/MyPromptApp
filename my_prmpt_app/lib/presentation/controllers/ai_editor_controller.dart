@@ -2,11 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_prmpt_app/domain/models/ai_metadata.dart';
+import 'package:my_prmpt_app/domain/models/ai_insight.dart';
+import '../../data/models/template_model.dart';
 import '../../data/models/enhanced_template_model.dart';
 import '../../data/models/prompt_field.dart';
 import '../../domain/services/ai_context_engine.dart';
-import '../../domain/services/template_analytics_service.dart';
-import '../../domain/models/ai_context.dart';
+import '../../domain/services/template_service.dart';
 
 class ChatMessage {
   final String content;
@@ -22,8 +23,7 @@ class ChatMessage {
 
 class AIEditorController extends GetxController {
   final AIContextEngine _aiContextEngine = Get.find<AIContextEngine>();
-  final TemplateAnalyticsService _analyticsService =
-      Get.find<TemplateAnalyticsService>();
+  final TemplateService _templateService = Get.find<TemplateService>();
 
   // Template properties
   final RxBool isEditMode = false.obs;
@@ -44,6 +44,12 @@ class AIEditorController extends GetxController {
   final RxList<ChatMessage> chatMessages = <ChatMessage>[].obs;
   final TextEditingController chatController = TextEditingController();
   final RxBool isGeneratingResponse = false.obs;
+  final RxBool isGeneratingInsights = false.obs;
+
+  // Private observable for current template
+  final Rx<EnhancedTemplateModel?> _currentTemplate =
+      Rx<EnhancedTemplateModel?>(null);
+  EnhancedTemplateModel? get currentTemplate => _currentTemplate.value;
 
   @override
   void onInit() {
@@ -149,13 +155,13 @@ class AIEditorController extends GetxController {
       if (title.value.isNotEmpty) {
         if (title.value.length < 10) {
           insights.add(AIInsight(
+            id: 'title_short_${DateTime.now().millisecondsSinceEpoch}',
             type: InsightType.optimization,
             title: 'Title Too Short',
-            description: 'Consider making the title more descriptive',
+            description:
+                'Consider making the title more descriptive. Add more context to help users understand the template purpose.',
             confidence: 0.8,
-            actionable: true,
-            recommendation:
-                'Add more context to help users understand the template purpose',
+            timestamp: DateTime.now(),
           ));
         }
       }
@@ -164,12 +170,13 @@ class AIEditorController extends GetxController {
       if (description.value.isNotEmpty) {
         if (description.value.length < 50) {
           insights.add(AIInsight(
+            id: 'desc_short_${DateTime.now().millisecondsSinceEpoch}',
             type: InsightType.optimization,
             title: 'Description Needs Detail',
-            description: 'The description could be more comprehensive',
+            description:
+                'The description could be more comprehensive. Explain what the template helps users accomplish.',
             confidence: 0.7,
-            actionable: true,
-            recommendation: 'Explain what the template helps users accomplish',
+            timestamp: DateTime.now(),
           ));
         }
       }
@@ -177,14 +184,13 @@ class AIEditorController extends GetxController {
       // Field analysis
       if (fields.length < 3) {
         insights.add(AIInsight(
+          id: 'fields_few_${DateTime.now().millisecondsSinceEpoch}',
           type: InsightType.recommendation,
           title: 'Consider More Fields',
           description:
-              'Templates with more fields tend to be more comprehensive',
+              'Templates with more fields tend to be more comprehensive. Add fields that capture important details for your use case.',
           confidence: 0.6,
-          actionable: true,
-          recommendation:
-              'Add fields that capture important details for your use case',
+          timestamp: DateTime.now(),
         ));
       }
 
@@ -203,87 +209,129 @@ class AIEditorController extends GetxController {
       description.value,
       category.value,
     );
-
     if (contexts.isNotEmpty) {
       final topContext = contexts.first;
       insights.add(AIInsight(
+        id: 'domain_practices_${DateTime.now().millisecondsSinceEpoch}',
         type: InsightType.trend,
         title: 'Domain Best Practices',
         description:
-            'This template aligns with ${topContext.domain} best practices',
+            'This template aligns with ${topContext.domain} best practices. Consider incorporating: ${topContext.keywords.take(2).join(", ")}',
         confidence: topContext.relevanceScore,
-        actionable: false,
-        recommendation:
-            'Consider incorporating: ${topContext.keywords.take(2).join(", ")}',
+        timestamp: DateTime.now(),
       ));
     }
   }
 
-  /// Apply an AI suggestion
-  void applySuggestion(TemplateSuggestion suggestion) {
-    final structure = suggestion.templateStructure;
+  /// Generate enhanced AI-powered template suggestions
+  Future<void> generateEnhancedTemplateSuggestions(String userInput) async {
+    if (!aiAssistantEnabled.value) return;
 
-    // Update template with suggestion
-    if (title.value.isEmpty) {
-      title.value = suggestion.title;
+    try {
+      isGeneratingInsights.value = true;
+      final suggestions =
+          await _aiContextEngine.generateTemplateSuggestions(userInput);
+
+      aiSuggestions.clear();
+      aiSuggestions.addAll(suggestions.take(5)); // Top 5 suggestions
+
+      // Add insight about suggestions
+      if (suggestions.isNotEmpty) {
+        _addInsight(AIInsight(
+          id: 'suggestions_generated_${DateTime.now().millisecondsSinceEpoch}',
+          type: InsightType.recommendation,
+          title: 'AI Suggestions Ready',
+          description:
+              'Generated ${suggestions.length} template suggestions based on your input',
+          confidence: 0.9,
+          timestamp: DateTime.now(),
+          metadata: {
+            'suggestionsCount': suggestions.length,
+            'userInput': userInput,
+          },
+        ));
+      }
+    } catch (e) {
+      _addInsight(AIInsight(
+        id: 'suggestion_error_${DateTime.now().millisecondsSinceEpoch}',
+        type: InsightType.warning,
+        title: 'AI Suggestion Error',
+        description: 'Unable to generate suggestions: ${e.toString()}',
+        confidence: 0.5,
+        timestamp: DateTime.now(),
+      ));
+    } finally {
+      isGeneratingInsights.value = false;
+    }
+  }
+
+  /// Perform real-time content analysis and provide insights
+  void performRealTimeAnalysis() {
+    if (!aiAssistantEnabled.value) return;
+
+    final insights = <AIInsight>[];
+
+    // Analyze template completeness
+    final completeness = _calculateTemplateCompleteness();
+    if (completeness < 0.7) {
+      insights.add(AIInsight(
+        id: 'completeness_${DateTime.now().millisecondsSinceEpoch}',
+        type: InsightType.suggestion,
+        title: 'Template Needs Enhancement',
+        description:
+            'Your template is ${(completeness * 100).toInt()}% complete',
+        confidence: 0.85,
+        timestamp: DateTime.now(),
+        metadata: {
+          'completeness': completeness,
+          'recommendation': 'Add more detailed content and dynamic fields',
+        },
+      ));
     }
 
-    if (description.value.isEmpty) {
-      description.value = suggestion.description;
+    // Analyze field usage
+    final fieldPattern = RegExp(r'\{\{([^}]+)\}\}');
+    final fieldMatches = fieldPattern.allMatches(templateContent.value);
+    if (fieldMatches.length < 3 && templateContent.value.length > 100) {
+      insights.add(AIInsight(
+        id: 'fields_${DateTime.now().millisecondsSinceEpoch}',
+        type: InsightType.suggestion,
+        title: 'Add More Dynamic Fields',
+        description: 'Templates with more fields provide better customization',
+        confidence: 0.8,
+        timestamp: DateTime.now(),
+        metadata: {
+          'currentFields': fieldMatches.length,
+          'recommendation': 'Add {{field_name}} placeholders for user input',
+        },
+      ));
     }
 
-    // Add suggested fields
-    if (structure['fields'] != null) {
-      final suggestedFields = structure['fields'] as List;
-      for (final fieldData in suggestedFields) {
-        final field = PromptField(
-          id: fieldData['id'] as String,
-          label: fieldData['label'] as String,
-          placeholder: fieldData['placeholder'] as String,
-          type: _parseFieldType(fieldData['type'] as String),
-          isRequired: fieldData['isRequired'] as bool? ?? false,
-        );
-        fields.add(field);
+    // Category optimization
+    if (category.value == 'General' && title.value.isNotEmpty) {
+      final suggestedCategory = _suggestOptimalCategory(title.value);
+      if (suggestedCategory != 'General') {
+        insights.add(AIInsight(
+          id: 'category_opt_${DateTime.now().millisecondsSinceEpoch}',
+          type: InsightType.recommendation,
+          title: 'Category Optimization',
+          description:
+              'Consider moving to "$suggestedCategory" for better discoverability',
+          confidence: 0.75,
+          timestamp: DateTime.now(),
+          metadata: {
+            'suggestedCategory': suggestedCategory,
+            'currentCategory': category.value,
+          },
+        ));
       }
     }
 
-    // Update template content
-    if (structure['template'] != null && templateContent.value.isEmpty) {
-      templateContent.value = structure['template'] as String;
-    }
-
-    // Remove the applied suggestion
-    aiSuggestions.remove(suggestion);
-
-    Get.snackbar(
-      'Suggestion Applied',
-      'Template updated with AI suggestions',
-      duration: const Duration(seconds: 2),
-    );
-
-    // Regenerate insights after applying suggestion
-    _generateAIInsights();
+    _addInsights(insights);
   }
 
-  FieldType _parseFieldType(String type) {
-    switch (type.toLowerCase()) {
-      case 'textarea':
-        return FieldType.textarea;
-      case 'dropdown':
-        return FieldType.dropdown;
-      case 'checkbox':
-        return FieldType.checkbox;
-      case 'radio':
-        return FieldType.radio;
-      case 'number':
-        return FieldType.number;
-      default:
-        return FieldType.text;
-    }
-  }
-
-  /// Send chat message to AI
-  Future<void> sendChatMessage(String message) async {
+  /// Enhanced chat with contextual AI responses
+  void sendEnhancedChatMessage(String message) {
     if (message.trim().isEmpty) return;
 
     // Add user message
@@ -294,125 +342,291 @@ class AIEditorController extends GetxController {
     ));
 
     chatController.clear();
-    isGeneratingResponse.value = true;
 
-    try {
-      // Generate AI response
-      final response = await _generateAIResponse(message);
+    // Generate contextual AI response
+    _generateEnhancedAIResponse(message);
+  }
 
-      chatMessages.add(ChatMessage(
-        content: response,
-        isUser: false,
-        timestamp: DateTime.now(),
-      ));
-    } catch (e) {
-      chatMessages.add(ChatMessage(
-        content: 'Sorry, I encountered an error. Please try again.',
-        isUser: false,
-        timestamp: DateTime.now(),
-      ));
-    } finally {
-      isGeneratingResponse.value = false;
+  /// Generate sophisticated AI response based on context
+  Future<void> _generateEnhancedAIResponse(String userMessage) async {
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    String response = _generateContextualResponse(userMessage.toLowerCase());
+
+    // Add AI response with typing effect simulation
+    chatMessages.add(ChatMessage(
+      content: response,
+      isUser: false,
+      timestamp: DateTime.now(),
+    ));
+  }
+
+  /// Generate intelligent contextual responses
+  String _generateContextualResponse(String message) {
+    // Template structure questions
+    if (message.contains('structure') || message.contains('organize')) {
+      return """🏗️ **Template Structure Best Practices:**
+
+• **Clear Headings**: Use # for main sections
+• **Logical Flow**: Introduction → Main Content → Conclusion
+• **Dynamic Fields**: Add {{field_name}} for customization
+• **Instructions**: Include helpful guidance for users
+• **Examples**: Show sample outputs where helpful
+
+Would you like me to suggest a specific structure for your template?""";
+    }
+
+    // Field-related questions
+    else if (message.contains('field') || message.contains('placeholder')) {
+      return """📝 **Dynamic Field Guidelines:**
+
+• **Descriptive Names**: {{project_name}} not {{name}}
+• **Clear Context**: {{target_audience}} not {{audience}}
+• **Required vs Optional**: Mark clearly in instructions
+• **Field Types**: Text, dropdown, date, number, etc.
+• **Validation**: Consider input constraints
+
+Current fields detected: ${_getFieldCount()} 
+Suggested minimum: 3-5 fields for good customization""";
+    }
+
+    // Content improvement
+    else if (message.contains('improve') ||
+        message.contains('better') ||
+        message.contains('enhance')) {
+      final completeness = _calculateTemplateCompleteness();
+      return """✨ **Enhancement Suggestions:**
+
+**Current Completeness**: ${(completeness * 100).toInt()}%
+
+**Quick Wins**:
+• Add more descriptive field labels
+• Include usage examples
+• Provide clear instructions
+• Use consistent formatting
+• Add helpful prompts and tips
+
+**Advanced**:
+• Create field dependencies
+• Add validation rules
+• Include output examples
+• Consider accessibility
+
+What specific area would you like to focus on?""";
+    }
+
+    // Category and tagging
+    else if (message.contains('category') ||
+        message.contains('tag') ||
+        message.contains('organize')) {
+      return """🏷️ **Categorization Tips:**
+
+**Current Category**: ${category.value}
+**Suggested**: ${_suggestOptimalCategory(title.value)}
+
+**Good Tags Include**:
+• Primary use case (planning, analysis, creative)
+• Target audience (developer, manager, student)
+• Output type (document, code, presentation)
+• Industry (tech, business, education)
+
+**Tag Examples**: project-planning, code-review, content-strategy, business-analysis""";
+    }
+
+    // Analytics and performance
+    else if (message.contains('analytics') ||
+        message.contains('performance') ||
+        message.contains('usage')) {
+      return """📊 **Template Performance Insights:**
+
+• **Completion Rate**: Higher with 3-7 fields
+• **User Engagement**: Clear instructions increase usage by 40%
+• **Discoverability**: Good tags improve findability by 60%
+• **Quality Score**: Based on structure, fields, and clarity
+
+**Optimization Tips**:
+• Test with different user groups
+• Monitor completion rates
+• Gather user feedback
+• Iterate based on usage patterns""";
+    }
+
+    // General help
+    else {
+      return """🤖 **AI Assistant Ready to Help!**
+
+I can assist with:
+• **Template Structure** - Organization and flow
+• **Dynamic Fields** - Placeholders and customization  
+• **Content Quality** - Writing and clarity
+• **Categorization** - Tags and discoverability
+• **Best Practices** - Industry standards
+• **Performance** - Analytics and optimization
+
+**Quick Actions**:
+• Say "analyze my template" for comprehensive review
+• Ask "suggest fields" for field recommendations
+• Type "best practices" for expert tips
+
+What would you like to work on?""";
     }
   }
 
-  Future<String> _generateAIResponse(String userMessage) async {
-    // Simple AI response generation based on keywords
-    final message = userMessage.toLowerCase();
+  /// Apply AI suggestion with enhanced integration
+  void applyEnhancedSuggestion(TemplateSuggestion suggestion) {
+    final structure = suggestion.templateStructure;
 
-    if (message.contains('field') || message.contains('input')) {
-      return 'For fields, consider the user\'s workflow. Required fields should capture essential information, while optional fields can provide additional context. Use clear labels and helpful placeholders.';
-    } else if (message.contains('template') || message.contains('content')) {
-      return 'Template content should use placeholders like {{field_name}} that match your field IDs. Structure your template logically with clear sections and helpful formatting.';
-    } else if (message.contains('category') || message.contains('type')) {
-      return 'Choose a category that best represents your template\'s purpose. This helps users discover your template and enables better AI suggestions.';
-    } else if (message.contains('title') || message.contains('name')) {
-      return 'A good title is descriptive and specific. It should immediately tell users what the template helps them accomplish.';
-    } else if (message.contains('description')) {
-      return 'The description should explain the template\'s purpose, who should use it, and what outcome they can expect. Be specific about the use case.';
-    } else {
-      return 'I can help you with template structure, field design, content organization, and best practices. What specific aspect would you like assistance with?';
-    }
-  }
+    // Apply template content with user confirmation
+    Get.dialog(
+      AlertDialog(
+        title: Text('Apply AI Suggestion'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Title: ${suggestion.title}'),
+            const SizedBox(height: 8),
+            Text('Confidence: ${(suggestion.confidence * 100).toInt()}%'),
+            const SizedBox(height: 8),
+            Text('This will update your template content. Continue?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Apply the suggestion
+              if (structure['template'] != null) {
+                templateContent.value = structure['template'];
+              }
 
-  /// Preview template
-  void previewTemplate() {
-    if (title.value.isEmpty) {
-      Get.snackbar('Error', 'Please add a title first');
-      return;
-    }
+              // Update metadata
+              if (structure['fields'] != null) {
+                final aiFields = structure['fields'] as List;
+                for (final fieldData in aiFields) {
+                  fields.add(PromptField(
+                    id: fieldData['id'],
+                    label: fieldData['label'],
+                    placeholder: fieldData['placeholder'],
+                    type: _parseFieldType(fieldData['type']),
+                    isRequired: fieldData['isRequired'] ?? false,
+                  ));
+                }
+              }
 
-    // Navigate to preview
-    Get.toNamed('/template-preview', arguments: {
-      'template': _buildTemplateModel(),
-    });
-  }
+              // Track usage
+              _aiContextEngine.updateContextUsage(suggestion.aiContext.id);
 
-  /// Save template
-  Future<void> saveTemplate() async {
-    if (!_validateTemplate()) return;
+              // Remove applied suggestion
+              aiSuggestions.remove(suggestion);
 
-    isLoading.value = true;
+              // Add success insight
+              _addInsight(AIInsight(
+                id: 'applied_${DateTime.now().millisecondsSinceEpoch}',
+                type: InsightType.recommendation,
+                title: 'AI Enhancement Applied',
+                description: 'Template updated with AI recommendations',
+                confidence: 1.0,
+                timestamp: DateTime.now(),
+                metadata: {
+                  'appliedSuggestion': suggestion.title,
+                  'confidence': suggestion.confidence,
+                },
+              ));
 
-    try {
-      final template = _buildTemplateModel();
-      // TODO: Save to repository
-
-      Get.snackbar('Success', 'Template saved successfully');
-
-      if (!isEditMode.value) {
-        Get.back();
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to save template: $e');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  bool _validateTemplate() {
-    if (title.value.trim().isEmpty) {
-      Get.snackbar('Error', 'Title is required');
-      return false;
-    }
-
-    if (description.value.trim().isEmpty) {
-      Get.snackbar('Error', 'Description is required');
-      return false;
-    }
-
-    if (templateContent.value.trim().isEmpty) {
-      Get.snackbar('Error', 'Template content is required');
-      return false;
-    }
-
-    return true;
-  }
-
-  EnhancedTemplateModel _buildTemplateModel() {
-    return EnhancedTemplateModel(
-      id: templateId.value,
-      title: title.value,
-      description: description.value,
-      category: category.value,
-      templateContent: templateContent.value,
-      fields: fields.toList(),
-      createdAt: isEditMode.value ? DateTime.now() : DateTime.now(),
-      updatedAt: DateTime.now(),
-      author: author.value,
-      tags: tags.toList(),
-      aiMetadata: aiAssistantEnabled.value
-          ? AIMetadata(
-              isAIGenerated: false,
-              confidence: 0.0,
-              aiModel: 'PromptForge-AI-v2',
-              aiProcessedAt: DateTime.now(),
-            )
-          : null,
+              Get.back();
+              Get.snackbar(
+                'Success',
+                'AI suggestion applied successfully',
+                snackPosition: SnackPosition.BOTTOM,
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+              );
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
     );
   }
 
-  /// Update template property
+  /// Enhanced template saving with AI metadata
+  Future<void> saveEnhancedTemplate() async {
+    if (!_validateEnhancedTemplate()) return;
+
+    try {
+      // Create enhanced template with AI metadata
+      final aiMetadata = AIMetadata(
+        isAIGenerated: aiSuggestions.isNotEmpty,
+        confidence: _calculateOverallConfidence(),
+        aiModel: 'PromptForge-AI-v2',
+        extractedKeywords: _extractKeywords(),
+        smartSuggestions: _getSmartSuggestions(),
+        contextDomain: _identifyContextDomain(),
+        aiProcessedAt: DateTime.now(),
+      );
+
+      final enhancedTemplate = EnhancedTemplateModel(
+        id: templateId.value,
+        title: title.value,
+        description: description.value,
+        category: category.value,
+        templateContent: templateContent.value,
+        fields: fields.toList(),
+        createdAt: isEditMode.value
+            ? currentTemplate?.createdAt ?? DateTime.now()
+            : DateTime.now(),
+        updatedAt: DateTime.now(),
+        author: author.value,
+        tags: tags.toList(),
+        aiMetadata: aiMetadata,
+        analytics: _getAnalyticsData(),
+      ); // Save through template service - convert to TemplateModel
+      final templateModel = TemplateModel(
+        id: enhancedTemplate.id,
+        title: enhancedTemplate.title,
+        description: enhancedTemplate.description,
+        category: enhancedTemplate.category,
+        templateContent: enhancedTemplate.templateContent,
+        fields: enhancedTemplate.fields,
+        createdAt: enhancedTemplate.createdAt,
+        updatedAt: enhancedTemplate.updatedAt,
+        author: enhancedTemplate.author,
+        tags: enhancedTemplate.tags,
+      );
+
+      await _templateService.saveTemplate(templateModel);
+
+      // Track analytics
+      _trackTemplateEvent('template_saved', {
+        'aiAssisted': aiMetadata.isAIGenerated,
+        'confidence': aiMetadata.confidence,
+        'suggestionsUsed': aiSuggestions.length,
+        'insightsGenerated': aiInsights.length,
+      });
+
+      Get.snackbar(
+        'Success',
+        'Enhanced template saved successfully!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to save template: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  /// Legacy method compatibility for UI
   void updateProperty(String property, String value) {
     switch (property) {
       case 'title':
@@ -424,21 +638,33 @@ class AIEditorController extends GetxController {
       case 'category':
         category.value = value;
         break;
-      case 'templateContent':
-        templateContent.value = value;
-        break;
       case 'author':
         author.value = value;
         break;
-    }
-
-    // Regenerate suggestions when key properties change
-    if (['title', 'description', 'category'].contains(property)) {
-      _generateInitialSuggestions();
+      case 'templateContent':
+        templateContent.value = value;
+        // Trigger real-time analysis when content changes
+        performRealTimeAnalysis();
+        break;
     }
   }
 
-  /// Add a new field
+  /// Preview template functionality
+  void previewTemplate() {
+    // Implementation for template preview
+    Get.snackbar(
+      'Preview',
+      'Template preview functionality coming soon',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  /// Save template - delegates to enhanced save
+  Future<void> saveTemplate() async {
+    await saveEnhancedTemplate();
+  }
+
+  /// Add a new field to the template
   void addField() {
     final newField = PromptField(
       id: 'field_${DateTime.now().millisecondsSinceEpoch}',
@@ -450,17 +676,255 @@ class AIEditorController extends GetxController {
     fields.add(newField);
   }
 
-  /// Remove a field
+  /// Remove a field from the template
   void removeField(int index) {
     if (index >= 0 && index < fields.length) {
       fields.removeAt(index);
     }
   }
 
-  /// Update a field
-  void updateField(int index, PromptField updatedField) {
-    if (index >= 0 && index < fields.length) {
-      fields[index] = updatedField;
+  /// Apply AI suggestion (legacy method)
+  void applySuggestion(dynamic suggestion) {
+    if (suggestion is TemplateSuggestion) {
+      applyEnhancedSuggestion(suggestion);
+    }
+  }
+
+  /// Send chat message (legacy method)
+  void sendChatMessage(String message) {
+    sendEnhancedChatMessage(message);
+  }
+
+  // Enhanced helper methods
+  double _calculateTemplateCompleteness() {
+    double score = 0.0;
+
+    if (title.value.isNotEmpty) score += 0.2;
+    if (description.value.length > 20) score += 0.2;
+    if (templateContent.value.length > 50) score += 0.3;
+    if (category.value != 'General') score += 0.1;
+    if (tags.isNotEmpty) score += 0.1;
+    if (fields.isNotEmpty) score += 0.1;
+
+    return score;
+  }
+
+  String _suggestOptimalCategory(String title) {
+    final titleLower = title.toLowerCase();
+
+    if (titleLower.contains('system') ||
+        titleLower.contains('architecture') ||
+        titleLower.contains('design')) {
+      return 'Software Engineering';
+    } else if (titleLower.contains('business') ||
+        titleLower.contains('plan') ||
+        titleLower.contains('strategy')) {
+      return 'Business Strategy';
+    } else if (titleLower.contains('content') ||
+        titleLower.contains('marketing') ||
+        titleLower.contains('brand')) {
+      return 'Creative & Content';
+    } else if (titleLower.contains('research') ||
+        titleLower.contains('analysis') ||
+        titleLower.contains('study')) {
+      return 'Research & Analysis';
+    } else if (titleLower.contains('education') ||
+        titleLower.contains('learning') ||
+        titleLower.contains('course')) {
+      return 'Education & Learning';
+    } else if (titleLower.contains('project') ||
+        titleLower.contains('management') ||
+        titleLower.contains('planning')) {
+      return 'Project Management';
+    }
+
+    return 'General';
+  }
+
+  int _getFieldCount() {
+    final fieldPattern = RegExp(r'\{\{([^}]+)\}\}');
+    return fieldPattern.allMatches(templateContent.value).length;
+  }
+
+  FieldType _parseFieldType(String typeString) {
+    switch (typeString.toLowerCase()) {
+      case 'textarea':
+        return FieldType.textarea;
+      case 'dropdown':
+        return FieldType.dropdown;
+      case 'number':
+        return FieldType.number;
+      case 'checkbox':
+        return FieldType.checkbox;
+      case 'radio':
+        return FieldType.radio;
+      default:
+        return FieldType.text;
+    }
+  }
+
+  double _calculateOverallConfidence() {
+    if (aiSuggestions.isEmpty) return 0.5;
+
+    final avgConfidence =
+        aiSuggestions.map((s) => s.confidence).reduce((a, b) => a + b) /
+            aiSuggestions.length;
+
+    return avgConfidence;
+  }
+
+  List<String> _extractKeywords() {
+    final content =
+        '${title.value} ${description.value} ${templateContent.value}'
+            .toLowerCase();
+
+    // Extract meaningful keywords (simplified approach)
+    final words = content.split(RegExp(r'\W+'));
+    final meaningfulWords = words
+        .where((word) =>
+            word.length > 3 &&
+            !['this', 'that', 'with', 'from', 'they', 'have', 'will', 'been']
+                .contains(word))
+        .toSet();
+
+    return meaningfulWords.take(10).toList();
+  }
+
+  Map<String, dynamic> _getSmartSuggestions() {
+    return {
+      'fieldSuggestions': _getFieldSuggestions(),
+      'structureSuggestions': _getStructureSuggestions(),
+      'contentSuggestions': _getContentSuggestions(),
+    };
+  }
+
+  String _identifyContextDomain() {
+    final content = '${title.value} ${description.value}'.toLowerCase();
+
+    if (content.contains('code') ||
+        content.contains('software') ||
+        content.contains('development')) {
+      return 'Software Development';
+    } else if (content.contains('business') ||
+        content.contains('marketing') ||
+        content.contains('strategy')) {
+      return 'Business';
+    } else if (content.contains('creative') ||
+        content.contains('design') ||
+        content.contains('content')) {
+      return 'Creative';
+    } else if (content.contains('research') ||
+        content.contains('analysis') ||
+        content.contains('study')) {
+      return 'Research';
+    } else if (content.contains('education') ||
+        content.contains('learning') ||
+        content.contains('training')) {
+      return 'Education';
+    }
+
+    return 'General';
+  }
+
+  Map<String, dynamic> _getAnalyticsData() {
+    return {
+      'creationTime': DateTime.now().toIso8601String(),
+      'aiAssisted': aiAssistantEnabled.value,
+      'suggestionsGenerated': aiSuggestions.length,
+      'insightsProvided': aiInsights.length,
+      'completeness': _calculateTemplateCompleteness(),
+      'fieldCount': fields.length,
+      'contentLength': templateContent.value.length,
+    };
+  }
+
+  List<String> _getFieldSuggestions() {
+    final suggestions = <String>[];
+    final domain = _identifyContextDomain();
+
+    switch (domain) {
+      case 'Software Development':
+        suggestions.addAll(
+            ['project_name', 'technology_stack', 'requirements', 'timeline']);
+        break;
+      case 'Business':
+        suggestions
+            .addAll(['company_name', 'target_market', 'budget', 'goals']);
+        break;
+      case 'Creative':
+        suggestions
+            .addAll(['brand_name', 'target_audience', 'message', 'style']);
+        break;
+      default:
+        suggestions.addAll(['title', 'description', 'objective', 'outcome']);
+    }
+
+    return suggestions;
+  }
+
+  List<String> _getStructureSuggestions() {
+    return [
+      'Add clear section headings',
+      'Include introduction and conclusion',
+      'Use bullet points for lists',
+      'Add examples where helpful',
+      'Include next steps section',
+    ];
+  }
+
+  List<String> _getContentSuggestions() {
+    return [
+      'Use active voice',
+      'Keep sentences concise',
+      'Add specific examples',
+      'Include actionable items',
+      'Use consistent terminology',
+    ];
+  }
+
+  bool _validateEnhancedTemplate() {
+    if (title.value.trim().isEmpty) {
+      Get.snackbar('Validation Error', 'Title is required');
+      return false;
+    }
+
+    if (description.value.trim().isEmpty) {
+      Get.snackbar('Validation Error', 'Description is required');
+      return false;
+    }
+
+    if (templateContent.value.trim().isEmpty) {
+      Get.snackbar('Validation Error', 'Template content is required');
+      return false;
+    }
+
+    if (_calculateTemplateCompleteness() < 0.5) {
+      Get.snackbar(
+          'Validation Error', 'Template needs more details to be saved');
+      return false;
+    }
+
+    return true;
+  }
+
+  void _trackTemplateEvent(String eventName, Map<String, dynamic> properties) {
+    // Integration with analytics service
+    print('Analytics Event: $eventName with properties: $properties');
+  }
+
+  /// Add a single insight to the collection
+  void _addInsight(AIInsight insight) {
+    aiInsights.add(insight);
+    // Keep only the latest 20 insights
+    if (aiInsights.length > 20) {
+      aiInsights.removeRange(0, aiInsights.length - 20);
+    }
+  }
+
+  /// Add multiple insights to the collection
+  void _addInsights(List<AIInsight> insights) {
+    for (final insight in insights) {
+      _addInsight(insight);
     }
   }
 }

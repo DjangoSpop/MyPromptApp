@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import '../models/template_model.dart';
+import '../../domain/services/asset_template_loader.dart';
 
 /// Service for local data persistence using Hive
 class LocalStorageService {
@@ -14,13 +15,11 @@ class LocalStorageService {
     debugPrint('Starting to load default templates...');
 
     try {
-      final templateFiles = [
-        'assets/templates/creative_templates.json',
-        'assets/templates/email_polisher.json',
-        'assets/templates/flutter_app.json',
-        'assets/templates/software_templates.json',
-        'assets/templates/star_interview.json',
-      ];
+      // Load manifest.json to get the list of template files
+      final manifestString =
+          await rootBundle.loadString('assets/templates/manifest.json');
+      final List<dynamic> manifestList = json.decode(manifestString);
+      final List<String> templateFiles = manifestList.cast<String>();
 
       int totalLoaded = 0;
 
@@ -46,17 +45,15 @@ class LocalStorageService {
             continue;
           }
 
-          debugPrint('Found ${templatesList.length} templates in $assetPath');
-
-          // Process each template
+          debugPrint(
+              'Found ${templatesList.length} templates in $assetPath'); // Process each template using AssetTemplateLoader
           for (int i = 0; i < templatesList.length; i++) {
             try {
               final templateJson = templatesList[i];
               debugPrint(
                   'Processing template ${i + 1}/${templatesList.length}: ${templateJson['title'] ?? 'Unknown'}');
-
-              final template =
-                  TemplateModel.fromJson(templateJson as Map<String, dynamic>);
+              final template = AssetTemplateLoader.convertToTemplateModel(
+                  templateJson as Map<String, dynamic>);
               await saveTemplate(template);
               totalLoaded++;
 

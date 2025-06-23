@@ -46,7 +46,7 @@ class FieldInputWidget extends StatelessWidget {
         errorText: errorText,
         border: const OutlineInputBorder(),
         helperText: field.helpText,
-        suffixIcon: field.isRequired 
+        suffixIcon: field.isRequired
             ? const Icon(Icons.star, size: 10, color: Colors.red)
             : null,
       ),
@@ -66,7 +66,7 @@ class FieldInputWidget extends StatelessWidget {
         border: const OutlineInputBorder(),
         alignLabelWithHint: true,
         helperText: field.helpText,
-        suffixIcon: field.isRequired 
+        suffixIcon: field.isRequired
             ? const Padding(
                 padding: EdgeInsets.only(top: 12.0),
                 child: Icon(Icons.star, size: 10, color: Colors.red),
@@ -81,9 +81,9 @@ class FieldInputWidget extends StatelessWidget {
     if (field.options == null || field.options!.isEmpty) {
       return const Text('No options available');
     }
-    
+
     return DropdownButtonFormField<String>(
-      value: (value?.toString() ?? field.defaultValue) as String?,
+      value: value?.toString() ?? field.defaultValue,
       onChanged: (newValue) {
         if (newValue != null) {
           onChanged(newValue);
@@ -94,7 +94,7 @@ class FieldInputWidget extends StatelessWidget {
         errorText: errorText,
         border: const OutlineInputBorder(),
         helperText: field.helpText,
-        suffixIcon: field.isRequired 
+        suffixIcon: field.isRequired
             ? const Icon(Icons.star, size: 10, color: Colors.red)
             : null,
       ),
@@ -109,9 +109,9 @@ class FieldInputWidget extends StatelessWidget {
 
   /// Builds a checkbox list for multiple selections
   Widget _buildCheckboxList() {
-    final selectedOptions = (value as List<String>?) ?? 
-                           (field.defaultValue != null ? [field.defaultValue!] : []);
-    
+    final selectedOptions = (value as List<String>?) ??
+        (field.defaultValue != null ? [field.defaultValue!] : []);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -151,7 +151,7 @@ class FieldInputWidget extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        
+
         // Options
         Container(
           decoration: BoxDecoration(
@@ -162,7 +162,8 @@ class FieldInputWidget extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: field.options?.length ?? 0,
-            separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[300]),
+            separatorBuilder: (context, index) =>
+                Divider(height: 1, color: Colors.grey[300]),
             itemBuilder: (context, index) {
               final option = field.options![index];
               return CheckboxListTile(
@@ -228,7 +229,7 @@ class FieldInputWidget extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
-        
+
         // Options
         Container(
           decoration: BoxDecoration(
@@ -239,7 +240,8 @@ class FieldInputWidget extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: field.options?.length ?? 0,
-            separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[300]),
+            separatorBuilder: (context, index) =>
+                Divider(height: 1, color: Colors.grey[300]),
             itemBuilder: (context, index) {
               final option = field.options![index];
               return RadioListTile<String>(
@@ -276,7 +278,7 @@ class FieldInputWidget extends StatelessWidget {
         errorText: errorText,
         border: const OutlineInputBorder(),
         helperText: field.helpText,
-        suffixIcon: field.isRequired 
+        suffixIcon: field.isRequired
             ? const Icon(Icons.star, size: 10, color: Colors.red)
             : null,
       ),

@@ -277,7 +277,7 @@ class PromptWizardPage extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
 
                   const SizedBox(height: 16),
 
@@ -573,14 +573,15 @@ void _showTemplateInfo(BuildContext context, TemplateModel template) {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: template.tags!.map((tag) {
-                  return Chip(
-                    label: Text(tag),
-                    labelStyle: const TextStyle(fontSize: 12),
-                    padding: EdgeInsets.zero,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  );
-                }).toList(),
+                children: template.tags!
+                    .map((tag) => Chip(
+                          label: Text(tag),
+                          labelStyle: const TextStyle(fontSize: 12),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ))
+                    .toList(),
               ),
             ],
           ],

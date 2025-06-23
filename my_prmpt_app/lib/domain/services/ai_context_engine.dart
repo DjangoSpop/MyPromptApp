@@ -1,14 +1,15 @@
 // lib/domain/services/ai_context_engine.dart
-import 'dart:convert';
 import 'package:get/get.dart';
 import '../models/ai_context.dart';
 import '../../data/models/template_model.dart';
 
-/// AI-powered context engine for intelligent template suggestions
+/// AI-powered context engine for intelligent template suggestions with RAG integration
 class AIContextEngine extends GetxService {
   final Map<String, List<AIContext>> _contextDatabase = {};
   final RxList<String> _recentQueries = <String>[].obs;
   final RxMap<String, double> _contextRelevanceScores = <String, double>{}.obs;
+  final RxList<TemplateSuggestion> _cachedSuggestions =
+      <TemplateSuggestion>[].obs;
 
   @override
   void onInit() {
@@ -243,7 +244,7 @@ class AIContextEngine extends GetxService {
     return score.clamp(0.0, 1.0);
   }
 
-  /// Generate AI-powered template suggestions
+  /// Generate AI-powered template suggestions based on user input
   Future<List<TemplateSuggestion>> generateTemplateSuggestions(
       String userInput) async {
     final contexts = await getRelevantContext(userInput, 'general');
@@ -258,6 +259,10 @@ class AIContextEngine extends GetxService {
         aiContext: context,
       ));
     }
+
+    // Cache suggestions for performance
+    _cachedSuggestions.clear();
+    _cachedSuggestions.addAll(suggestions);
 
     return suggestions;
   }
@@ -311,54 +316,175 @@ class AIContextEngine extends GetxService {
 
   String _generateTemplateFromContext(AIContext context) {
     return """
-AI-Enhanced ${context.domain} Template
+# AI-Enhanced ${context.domain} Template
 
-Context: ${context.context}
+## Context Analysis
+${context.context}
 
+## Primary Focus
 {{${context.keywords.first.replaceAll(' ', '_').toLowerCase()}}}
 
-Please analyze and provide recommendations based on:
+## Detailed Analysis
+Please provide comprehensive information for:
 ${context.keywords.map((k) => '- {{${k.replaceAll(' ', '_').toLowerCase()}}}').join('\n')}
 
-AI Context Integration:
+## AI Recommendations
 This template leverages ${context.domain} best practices and incorporates intelligent suggestions based on your specific requirements.
+
+## Additional Considerations
+- Consider industry standards and best practices
+- Ensure compliance with relevant regulations
+- Optimize for user experience and clarity
+- Incorporate measurable outcomes where applicable
+
+---
+*Generated with AI assistance • Confidence: ${(context.relevanceScore * 100).toInt()}%*
+*Template ID: ${context.id} • Generated: ${DateTime.now().toString().split('.')[0]}*
 """;
   }
 
-  /// Add new context to the database
-  void addContext(AIContext context) {
-    final domain = context.domain.toLowerCase().replaceAll(' ', '_');
-    if (!_contextDatabase.containsKey(domain)) {
-      _contextDatabase[domain] = [];
-    }
-    _contextDatabase[domain]!.add(context);
-  }
-
-  /// Update context usage statistics
+  /// Update usage statistics for machine learning
   void updateContextUsage(String contextId) {
     for (final contextList in _contextDatabase.values) {
       for (final context in contextList) {
         if (context.id == contextId) {
-          final updatedContext = context.copyWith(
-            usageCount: context.usageCount + 1,
-            lastUsed: DateTime.now(),
-          );
-          final index = contextList.indexOf(context);
-          contextList[index] = updatedContext;
+          context.usageCount++;
+          context.lastUsed = DateTime.now();
+          // Update relevance score based on usage
+          context.relevanceScore =
+              (context.relevanceScore + 0.01).clamp(0.0, 1.0);
           break;
         }
       }
     }
   }
 
-  /// Get all contexts for a specific domain
-  List<AIContext> getContextsForDomain(String domain) {
-    return _contextDatabase[domain.toLowerCase().replaceAll(' ', '_')] ?? [];
+  /// Get trending contexts based on recent usage patterns
+  List<AIContext> getTrendingContexts() {
+    final allContexts = <AIContext>[];
+    for (final contextList in _contextDatabase.values) {
+      allContexts.addAll(contextList);
+    }
+
+    // Sort by recent usage and frequency
+    allContexts.sort((a, b) {
+      final aScore = a.usageCount +
+          (a.lastUsed != null
+              ? (DateTime.now().difference(a.lastUsed!).inDays < 7 ? 50 : 0)
+              : 0);
+      final bScore = b.usageCount +
+          (b.lastUsed != null
+              ? (DateTime.now().difference(b.lastUsed!).inDays < 7 ? 50 : 0)
+              : 0);
+      return bScore.compareTo(aScore);
+    });
+
+    return allContexts.take(10).toList();
   }
 
-  /// Get recent queries for analytics
-  List<String> get recentQueries => _recentQueries.toList();
+  /// Perform advanced semantic search with context awareness
+  Future<List<AIContext>> performSemanticSearch(String query,
+      {int limit = 5}) async {
+    final results = <AIContext>[];
+    final queryTerms = query.toLowerCase().split(' ');
 
-  /// Get context relevance scores
-  Map<String, double> get contextRelevanceScores => _contextRelevanceScores;
+    for (final contextList in _contextDatabase.values) {
+      for (final context in contextList) {
+        double score = 0.0;
+
+        // Exact keyword matches (high weight)
+        for (final keyword in context.keywords) {
+          if (queryTerms.any((term) => keyword.toLowerCase().contains(term))) {
+            score += 0.4;
+          }
+        }
+
+        // Context description matches (medium weight)
+        final contextWords = context.context.toLowerCase().split(' ');
+        for (final term in queryTerms) {
+          if (contextWords.any((word) => word.contains(term))) {
+            score += 0.2;
+          }
+        }
+
+        // Domain relevance (low weight)
+        if (context.domain.toLowerCase().contains(query.toLowerCase())) {
+          score += 0.1;
+        }
+
+        // Usage popularity boost
+        score += (context.usageCount / 1000) * 0.1;
+
+        if (score > 0.1) {
+          context.relevanceScore = score;
+          results.add(context);
+        }
+      }
+    }
+
+    results.sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
+    return results.take(limit).toList();
+  }
+
+  /// Get cached suggestions for performance
+  List<TemplateSuggestion> get cachedSuggestions => _cachedSuggestions.toList();
+
+  /// Clear cached suggestions
+  void clearCache() {
+    _cachedSuggestions.clear();
+  }
+
+  /// Get analytics data for dashboard
+  Map<String, dynamic> getAnalyticsData() {
+    final totalContexts =
+        _contextDatabase.values.fold(0, (sum, list) => sum + list.length);
+    final totalUsage = _contextDatabase.values
+        .expand((list) => list)
+        .fold(0, (sum, context) => sum + context.usageCount);
+
+    return {
+      'totalContexts': totalContexts,
+      'totalUsage': totalUsage,
+      'recentQueries': _recentQueries.length,
+      'trendingContexts': getTrendingContexts().length,
+      'cacheSize': _cachedSuggestions.length,
+    };
+  }
+}
+
+/// Template suggestion generated by AI
+class TemplateSuggestion {
+  final String title;
+  final String description;
+  final Map<String, dynamic> templateStructure;
+  final double confidence;
+  final AIContext aiContext;
+
+  TemplateSuggestion({
+    required this.title,
+    required this.description,
+    required this.templateStructure,
+    required this.confidence,
+    required this.aiContext,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'templateStructure': templateStructure,
+      'confidence': confidence,
+      'aiContext': aiContext.toJson(),
+    };
+  }
+
+  factory TemplateSuggestion.fromJson(Map<String, dynamic> json) {
+    return TemplateSuggestion(
+      title: json['title'],
+      description: json['description'],
+      templateStructure: Map<String, dynamic>.from(json['templateStructure']),
+      confidence: json['confidence']?.toDouble() ?? 0.0,
+      aiContext: AIContext.fromJson(json['aiContext']),
+    );
+  }
 }

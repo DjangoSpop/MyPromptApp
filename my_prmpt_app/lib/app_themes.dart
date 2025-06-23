@@ -7,7 +7,7 @@ class AppThemes {
   static const Color primaryColor = Color(0xFF6366F1); // Indigo
   static const Color secondaryColor = Color(0xFF8B5CF6); // Violet
   static const Color accentColor = Color(0xFFEC4899); // Pink
-  
+
   // Light theme color palette
   static final lightColorScheme = ColorScheme.fromSeed(
     seedColor: primaryColor,
@@ -15,7 +15,7 @@ class AppThemes {
     secondary: secondaryColor,
     tertiary: accentColor,
   );
-  
+
   // Dark theme color palette
   static final darkColorScheme = ColorScheme.fromSeed(
     seedColor: primaryColor,
@@ -29,7 +29,7 @@ class AppThemes {
     return ThemeData(
       useMaterial3: true,
       colorScheme: lightColorScheme,
-      
+
       // App bar theme
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -38,7 +38,7 @@ class AppThemes {
         backgroundColor: lightColorScheme.surface,
         foregroundColor: lightColorScheme.onSurface,
       ),
-      
+
       // Card theme
       cardTheme: CardTheme(
         elevation: 2,
@@ -47,7 +47,7 @@ class AppThemes {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      
+
       // Text form field theme
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
@@ -72,7 +72,7 @@ class AppThemes {
         hintStyle: TextStyle(color: Colors.grey[400]),
         errorStyle: TextStyle(color: lightColorScheme.error),
       ),
-      
+
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -91,7 +91,7 @@ class AppThemes {
           ),
         ),
       ),
-      
+
       // Outlined button theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -106,7 +106,7 @@ class AppThemes {
           ),
         ),
       ),
-      
+
       // Text button theme
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -120,7 +120,7 @@ class AppThemes {
           ),
         ),
       ),
-      
+
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey[100],
@@ -131,7 +131,7 @@ class AppThemes {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
-      
+
       // Dialog theme
       dialogTheme: DialogTheme(
         shape: RoundedRectangleBorder(
@@ -139,7 +139,7 @@ class AppThemes {
         ),
         elevation: 5,
       ),
-      
+
       // Floating action button theme
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primaryColor,
@@ -148,7 +148,7 @@ class AppThemes {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
-      
+
       // Tab bar theme
       tabBarTheme: TabBarTheme(
         labelColor: primaryColor,
@@ -163,7 +163,7 @@ class AppThemes {
           fontSize: 14,
         ),
       ),
-      
+
       // List tile theme
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(
@@ -174,14 +174,14 @@ class AppThemes {
           borderRadius: BorderRadius.circular(8),
         ),
       ),
-      
+
       // Divider theme
       dividerTheme: DividerThemeData(
         color: Colors.grey[200],
         thickness: 1,
         space: 24,
       ),
-      
+
       // SnackBar theme
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
@@ -199,7 +199,7 @@ class AppThemes {
     return ThemeData(
       useMaterial3: true,
       colorScheme: darkColorScheme,
-      
+
       // App bar theme
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -208,7 +208,7 @@ class AppThemes {
         backgroundColor: darkColorScheme.surface,
         foregroundColor: darkColorScheme.onSurface,
       ),
-      
+
       // Card theme
       cardTheme: CardTheme(
         elevation: 2,
@@ -217,7 +217,7 @@ class AppThemes {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      
+
       // Text form field theme
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
@@ -242,7 +242,7 @@ class AppThemes {
         hintStyle: TextStyle(color: Colors.grey[600]),
         errorStyle: TextStyle(color: darkColorScheme.error),
       ),
-      
+
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -261,7 +261,7 @@ class AppThemes {
           ),
         ),
       ),
-      
+
       // Outlined button theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -276,7 +276,7 @@ class AppThemes {
           ),
         ),
       ),
-      
+
       // Text button theme
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -290,7 +290,7 @@ class AppThemes {
           ),
         ),
       ),
-      
+
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey[800],
@@ -301,7 +301,7 @@ class AppThemes {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
-      
+
       // Dialog theme
       dialogTheme: DialogTheme(
         backgroundColor: Colors.grey[900],
@@ -310,7 +310,7 @@ class AppThemes {
         ),
         elevation: 5,
       ),
-      
+
       // Floating action button theme
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primaryColor,
@@ -319,7 +319,7 @@ class AppThemes {
           borderRadius: BorderRadius.circular(16),
         ),
       ),
-      
+
       // Tab bar theme
       tabBarTheme: TabBarTheme(
         labelColor: Colors.white,
@@ -334,7 +334,7 @@ class AppThemes {
           fontSize: 14,
         ),
       ),
-      
+
       // List tile theme
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(
@@ -345,14 +345,14 @@ class AppThemes {
           borderRadius: BorderRadius.circular(8),
         ),
       ),
-      
+
       // Divider theme
       dividerTheme: DividerThemeData(
         color: Colors.grey[800],
         thickness: 1,
         space: 24,
       ),
-      
+
       // SnackBar theme
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

@@ -1,7 +1,7 @@
 // lib/presentation/controllers/discovery_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../domain/services/ai_context_engine.dart';
+import '../../domain/services/ai_context_engine.dart' as ai_engine;
 import '../../domain/services/template_analytics_service.dart';
 import '../../domain/models/ai_context.dart';
 import '../../data/models/template_model.dart';
@@ -21,7 +21,7 @@ class Category {
 }
 
 class DiscoveryController extends GetxController {
-  final AIContextEngine _aiContextEngine = Get.find<AIContextEngine>();
+  final ai_engine.AIContextEngine _aiContextEngine = Get.find<ai_engine.AIContextEngine>();
   final TemplateAnalyticsService _analyticsService =
       Get.find<TemplateAnalyticsService>();
 
@@ -113,7 +113,6 @@ class DiscoveryController extends GetxController {
   }
 
   Future<void> _loadTrendingTemplates() async {
-    final trendingIds = _analyticsService.getTrendingTemplates(limit: 5);
     // TODO: Load actual template models from repository
     // For now, using placeholder data
     trendingTemplates.clear();
@@ -127,7 +126,7 @@ class DiscoveryController extends GetxController {
   Future<void> _generateInitialAISuggestions() async {
     final suggestions = await _aiContextEngine
         .generateTemplateSuggestions('help me create professional templates');
-    aiSuggestions.assignAll(suggestions);
+    aiSuggestions.assignAll(suggestions as Iterable<TemplateSuggestion>);
   }
 
   /// Perform AI-powered search
@@ -140,7 +139,7 @@ class DiscoveryController extends GetxController {
     try {
       final suggestions =
           await _aiContextEngine.generateTemplateSuggestions(query);
-      aiSuggestions.assignAll(suggestions);
+      aiSuggestions.assignAll(suggestions as Iterable<TemplateSuggestion>);
 
       // TODO: Also search existing templates
     } catch (e) {
@@ -209,6 +208,7 @@ class DiscoveryController extends GetxController {
   }
 
   /// Refresh discovery data
+  @override
   Future<void> refresh() async {
     await _loadInitialData();
   }
@@ -237,7 +237,14 @@ class DiscoveryController extends GetxController {
   List<String> getSearchSuggestions() {
     if (searchQuery.value.isEmpty) return [];
 
-    final recentQueries = _aiContextEngine.recentQueries;
+    // TODO: Implement recent queries storage or use available AIContextEngine methods
+    final recentQueries = <String>[
+      'Software engineering templates',
+      'Business strategy planning',
+      'Creative writing prompts',
+      'Code review checklist',
+      'Meeting agenda template'
+    ];
     return recentQueries
         .where((query) =>
             query.toLowerCase().contains(searchQuery.value.toLowerCase()))

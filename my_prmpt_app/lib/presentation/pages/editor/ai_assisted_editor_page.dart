@@ -2,8 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/ai_editor_controller.dart';
-import '../../widgets/ai_suggestion_card.dart';
-import '../../../domain/services/template_analytics_service.dart';
+import '../../widgets/ai_enhanced_widgets.dart';
 
 class AIAssistedEditorPage extends GetView<AIEditorController> {
   const AIAssistedEditorPage({super.key});
@@ -53,32 +52,24 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
           onPressed: controller.previewTemplate,
           tooltip: 'Preview',
         ),
-        Obx(
-          () => controller.isLoading.value
-              ? const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : IconButton(
-                  icon: const Icon(Icons.save),
-                  onPressed: controller.saveTemplate,
-                  tooltip: 'Save',
-                ),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: controller.saveTemplate,
+          icon: const Icon(Icons.save),
+          label: const Text('Save'),
         ),
+        const SizedBox(width: 16),
       ],
     );
   }
 
   Widget _buildMainEditor(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildBasicInfoSection(context),
+          _buildTemplateInfo(context),
           const SizedBox(height: 24),
           _buildContentEditor(context),
           const SizedBox(height: 24),
@@ -88,7 +79,7 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
     );
   }
 
-  Widget _buildBasicInfoSection(BuildContext context) {
+  Widget _buildTemplateInfo(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -395,58 +386,17 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
   }
 
   void _editField(field, int index) {
-    // TODO: Implement field editing dialog
     Get.snackbar('Info', 'Field editing will be implemented');
   }
 
   Widget _buildAIAssistantPanel(BuildContext context) {
     return Container(
       color: Colors.grey[50],
-      child: Column(
-        children: [
-          _buildAIAssistantHeader(context),
-          Expanded(
-            child: _buildAIAssistantContent(context),
-          ),
-        ],
-      ),
+      child: _buildAIContent(),
     );
   }
 
-  Widget _buildAIAssistantHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.1),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.psychology,
-            color: Theme.of(context).primaryColor,
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'AI Assistant',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          Obx(() => Switch(
-                value: controller.aiAssistantEnabled.value,
-                onChanged: (_) => controller.toggleAIAssistant(),
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAIAssistantContent(BuildContext context) {
+  Widget _buildAIContent() {
     return Obx(() {
       if (!controller.aiAssistantEnabled.value) {
         return const Center(
@@ -471,108 +421,140 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
   }
 
   Widget _buildAISuggestions() {
-    return Obx(() {
-      if (controller.aiSuggestions.isEmpty) {
-        return const SizedBox();
-      }
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'AI Suggestions',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'AI Suggestions',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          ...controller.aiSuggestions.map((suggestion) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: Icon(
-                  Icons.lightbulb,
-                  color: Colors.amber[600],
-                  size: 20,
-                ),
-                title: Text(
-                  suggestion.title,
-                  style: const TextStyle(fontSize: 12),
-                ),
-                subtitle: Text(
-                  suggestion.description,
-                  style: const TextStyle(fontSize: 10),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.add, size: 16),
-                  onPressed: () => controller.applySuggestion(suggestion),
-                ),
+            const Spacer(),
+            Obx(() => controller.isGeneratingInsights.value
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.refresh, size: 16),
+                    onPressed: () => controller.generateEnhancedTemplateSuggestions(
+                        '${controller.title.value} ${controller.description.value}'),
+                    tooltip: 'Generate AI suggestions',
+                  )),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          if (controller.aiSuggestions.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.lightbulb_outline,
+                      size: 24, color: Colors.grey[400]),
+                  const SizedBox(height: 4),
+                  Text(
+                    'No suggestions yet',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             );
-          }).toList(),
-        ],
-      );
-    });
+          }
+
+          return Column(
+            children: controller.aiSuggestions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final suggestion = entry.value;
+              return AISuggestionCard(
+                suggestion: suggestion,
+                onAccept: () => controller.applyEnhancedSuggestion(suggestion),
+                onDismiss: () => controller.aiSuggestions.removeAt(index),
+                index: index,
+              );
+            }).toList(),
+          );
+        }),
+      ],
+    );
   }
 
   Widget _buildAIInsights() {
-    return Obx(() {
-      if (controller.aiInsights.isEmpty) {
-        return const SizedBox();
-      }
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'AI Insights',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'AI Insights',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          ...controller.aiInsights.map((insight) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              color: _getInsightColor(insight.type),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      insight.title,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.analytics_outlined, size: 16),
+              onPressed: () => controller.performRealTimeAnalysis(),
+              tooltip: 'Analyze template',
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Obx(() {
+          if (controller.aiInsights.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.insights, size: 24, color: Colors.grey[400]),
+                  const SizedBox(height: 4),
+                  Text(
+                    'No insights yet',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      insight.description,
-                      style: const TextStyle(fontSize: 10),
-                    ),
-                    if (insight.recommendation != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        insight.recommendation!,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
-          }).toList(),
-        ],
-      );
-    });
+          }
+
+          return Column(
+            children: controller.aiInsights.asMap().entries.map((entry) {
+              final index = entry.key;
+              final insight = entry.value;
+              return AIInsightCard(
+                insight: insight,
+                onAction: () {
+                  controller.aiInsights.removeAt(index);
+                },
+                isCompact: true,
+              );
+            }).toList(),
+          );
+        }),
+      ],
+    );
   }
 
   Widget _buildAIChat() {
@@ -597,7 +579,6 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
             children: [
               Expanded(
                 child: Obx(() => ListView.builder(
-                      padding: const EdgeInsets.all(8),
                       itemCount: controller.chatMessages.length,
                       itemBuilder: (context, index) {
                         final message = controller.chatMessages[index];
@@ -608,8 +589,10 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: Colors.grey[300]!),
+                  color: Colors.grey[50],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
                   ),
                 ),
                 child: Row(
@@ -620,24 +603,15 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
                         decoration: const InputDecoration(
                           hintText: 'Ask about your template...',
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(8),
                         ),
                         style: const TextStyle(fontSize: 12),
                         onSubmitted: controller.sendChatMessage,
                       ),
                     ),
-                    Obx(
-                      () => controller.isGeneratingResponse.value
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.send, size: 16),
-                              onPressed: () => controller.sendChatMessage(
-                                  controller.chatController.text),
-                            ),
+                    IconButton(
+                      icon: const Icon(Icons.send, size: 16),
+                      onPressed: () => controller
+                          .sendChatMessage(controller.chatController.text),
                     ),
                   ],
                 ),
@@ -649,37 +623,41 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
     );
   }
 
-  Widget _buildChatMessage(ChatMessage message) {
+  Widget _buildChatMessage(dynamic message) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: message.isUser ? Get.theme.primaryColor : Colors.grey[200],
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          message.content,
-          style: TextStyle(
-            fontSize: 10,
-            color: message.isUser ? Colors.white : Colors.black,
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: message.isUser ? Colors.blue : Colors.grey,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              message.isUser ? Icons.person : Icons.smart_toy,
+              size: 12,
+              color: Colors.white,
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: message.isUser ? Colors.blue[50] : Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                message.content,
+                style: const TextStyle(fontSize: 11),
+              ),
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  Color _getInsightColor(InsightType type) {
-    switch (type) {
-      case InsightType.optimization:
-        return Colors.orange[50]!;
-      case InsightType.popularity:
-        return Colors.green[50]!;
-      case InsightType.trend:
-        return Colors.blue[50]!;
-      case InsightType.recommendation:
-        return Colors.purple[50]!;
-    }
   }
 }

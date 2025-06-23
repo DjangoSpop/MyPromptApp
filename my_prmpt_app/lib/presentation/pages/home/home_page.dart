@@ -1,9 +1,11 @@
 // lib/presentation/pages/home/home_page.dart
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:get/get.dart';
+
 import '../../controllers/home_controller.dart';
-import '../../widgets/template_card.dart';
+import '../../widgets/template_card.dart' as template;
+import '../../../data/models/template_api_models.dart';
 
 /// Home page displaying template gallery
 class HomePage extends GetView<HomeController> {
@@ -15,6 +17,20 @@ class HomePage extends GetView<HomeController> {
       appBar: AppBar(
         title: const Text('Prompt Forge'),
         actions: [
+          // Refresh button
+          Obx(() => IconButton(
+                onPressed: controller.isRefreshing.value
+                    ? null
+                    : controller.refreshTemplates,
+                icon: controller.isRefreshing.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                tooltip: 'Refresh Templates',
+              )),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => Get.toNamed('/editor'),
@@ -42,7 +58,11 @@ class HomePage extends GetView<HomeController> {
       ),
       body: Column(
         children: [
+          // Template status card
+          _buildTemplateStatusCard(),
+          // Search and filter
           _buildSearchAndFilter(),
+          // Template grid
           Expanded(child: _buildTemplateGrid()),
         ],
       ),
@@ -72,22 +92,24 @@ class HomePage extends GetView<HomeController> {
           SizedBox(
             height: 40,
             child: Obx(() => ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: controller.categories.length,
-              itemBuilder: (context, index) {
-                final category = controller.categories[index];
-                final isSelected = controller.selectedCategory.value == category;
-                
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: FilterChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    onSelected: (_) => controller.selectedCategory.value = category,
-                  ),
-                );
-              },
-            )),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: controller.categories.length,
+                  itemBuilder: (context, index) {
+                    final category = controller.categories[index];
+                    final isSelected =
+                        controller.selectedCategory.value == category;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: FilterChip(
+                        label: Text(category),
+                        selected: isSelected,
+                        onSelected: (_) =>
+                            controller.selectedCategory.value = category,
+                      ),
+                    );
+                  },
+                )),
           ),
         ],
       ),
@@ -100,11 +122,11 @@ class HomePage extends GetView<HomeController> {
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
-      
+
       if (controller.filteredTemplates.isEmpty) {
         return _buildEmptyState();
       }
-      
+
       return AnimationLimiter(
         child: GridView.builder(
           padding: const EdgeInsets.all(16),
@@ -122,16 +144,16 @@ class HomePage extends GetView<HomeController> {
               columnCount: 2,
               child: ScaleAnimation(
                 child: FadeInAnimation(
-                  child: TemplateCard(
+                  child: template.TemplateCard(
                     template: controller.filteredTemplates[index],
-                    onTap: () => _openWizard(controller.filteredTemplates[index]),
-                    onEdit: () => _editTemplate(controller.filteredTemplates[index]),
-                    onDuplicate: () => controller.duplicateTemplate(
-                      controller.filteredTemplates[index]
-                    ),
-                    onDelete: () => _confirmDelete(
-                      controller.filteredTemplates[index]
-                    ),
+                    onTap: () =>
+                        _openWizard(controller.filteredTemplates[index]),
+                    onEdit: () =>
+                        _editTemplate(controller.filteredTemplates[index]),
+                    onDuplicate: () => controller
+                        .duplicateTemplate(controller.filteredTemplates[index]),
+                    onDelete: () =>
+                        _confirmDelete(controller.filteredTemplates[index]),
                   ),
                 ),
               ),
@@ -180,6 +202,105 @@ class HomePage extends GetView<HomeController> {
     );
   }
 
+  /// Builds template status card
+  Widget _buildTemplateStatusCard() {
+    return Obx(() {
+      if (controller.templates.isEmpty && !controller.isLoading.value) {
+        return const SizedBox.shrink();
+      }
+
+      return Card(
+        margin: const EdgeInsets.all(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.analytics_outlined,
+                    color: Get.theme.primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Template Library',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    controller.templateStatus,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              if (controller.totalTemplates.value > 0) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildStatItem(
+                      icon: Icons.library_books,
+                      label: 'Total',
+                      value: controller.totalTemplates.value.toString(),
+                      color: Colors.blue,
+                    ),
+                    const SizedBox(width: 16),
+                    _buildStatItem(
+                      icon: Icons.category,
+                      label: 'Categories',
+                      value: (controller.categories.length - 1).toString(),
+                      color: Colors.green,
+                    ),
+                    const Spacer(),
+                    if (controller.templatesByCategory.isNotEmpty)
+                      Text(
+                        'Most: ${controller.templatesByCategory.entries.fold<MapEntry<String, int>>(
+                              controller.templatesByCategory.entries.first,
+                              (a, b) => a.value > b.value ? a : b,
+                            ).key}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(
+          '$label: $value',
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Handles menu actions
   void _handleMenuAction(String action) {
     switch (action) {
@@ -193,8 +314,8 @@ class HomePage extends GetView<HomeController> {
   }
 
   /// Opens template wizard
-  void _openWizard(template) {
-    Get.toNamed('/wizard', arguments: template);
+  void _openWizard(TemplateListItem template) {
+    Get.toNamed('/wizard', arguments: template.toTemplateModel());
   }
 
   /// Opens template editor
@@ -232,7 +353,7 @@ class HomePage extends GetView<HomeController> {
   /// Shows import dialog
   void _showImportDialog() {
     final textController = TextEditingController();
-    
+
     Get.dialog(
       AlertDialog(
         title: const Text('Import Templates'),

@@ -31,7 +31,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -48,7 +47,86 @@ dependencies:
   
   # UI Enhancement
   flutter_staggered_animations: ^1.1.1
+  
+  # Advanced Features Dependencies
+  # Security & Encryption
+  crypto: ^3.0.3
+  encrypt: ^5.0.1
+  
+  # HTTP & Network
+  http: ^1.1.0
+  dio: ^5.3.2
+    # ML & AI - Commented out for now due to potential build issues
+  # tflite_flutter: ^0.10.4
+  
+  # Advanced UI Components
+  flutter_svg: ^2.0.7
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  lottie: ^2.7.0
+  animations: ^2.0.8
+    # Charts & Analytics - Simplified to avoid build conflicts
+  fl_chart: ^0.64.0
+  # charts_flutter: ^0.12.0 # Commented out - may cause conflicts
+  
+  # File Operations
+  file_picker: ^6.1.1
+  csv: ^5.0.2
+  excel: ^2.1.0
+  
+  # Image Processing
+  image: ^4.1.3
+  photo_view: ^0.14.0
+  
+  # Markdown & Rich Text
+  flutter_markdown: ^0.6.18
+  markdown: ^7.1.1
+  
+  # Date/Time utilities
+  intl: 0.17.0
+  
+  # Device Information
+  device_info_plus: ^9.1.0
+  package_info_plus: ^4.2.0
+  
+  # Connectivity
+  connectivity_plus: ^5.0.1
+  
+  # Local Notifications
+  flutter_local_notifications: ^16.1.0
+  
+  # PDF Generation
+  pdf: ^3.10.6
+  printing: ^5.11.0
+    # QR Code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^3.5.7
+  
+  # WebView
+  webview_flutter: ^4.4.2
+  
+  # Database
+  sqflite: ^2.3.0
+    # JSON Processing
+  json_annotation: ^4.8.1
+  
+  # HTTP Mock (for testing)
+  mockito: ^5.4.2
   flutter_slidable: ^3.0.1
+  
+  # Gamification & Ads
+  google_mobile_ads: ^5.2.0
+  confetti: ^0.7.0
+  # flame: ^1.12.0 # Commented out - heavy dependency
+  # rive: ^0.12.4 # Commented out - heavy dependency
+  
+  # Audio & Haptics
+  audioplayers: ^5.2.1
+  vibration: ^1.8.4
+  
+  # Additional animations
+  flutter_animate: ^4.3.0
+  simple_animations: ^5.0.2
 
 dev_dependencies:
   flutter_test:
@@ -76,10 +154,17 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/templates/
+    - assets/templates/manifest.json
+    - assets/templates/creative_templates.json
+    - assets/templates/email_polisher.json
+    - assets/templates/flutter_app.json
+    - assets/templates/software_templates.json
+    - assets/templates/star_interview.json
+    - assets/templates/advanced_storytelling_templates.json
+    - assets/templates/enhanced_email_templates.json
+    - assets/templates/professional_domain_templates.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

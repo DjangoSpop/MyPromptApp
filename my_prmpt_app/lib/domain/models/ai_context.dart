@@ -7,8 +7,8 @@ class AIContext {
   final String context;
   final List<String> keywords;
   double relevanceScore;
-  final int usageCount;
-  final DateTime? lastUsed;
+  int usageCount;
+  DateTime? lastUsed;
 
   AIContext({
     required this.id,

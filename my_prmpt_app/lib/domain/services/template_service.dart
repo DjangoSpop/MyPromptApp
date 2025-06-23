@@ -1,11 +1,12 @@
 // lib/domain/services/template_service.dart
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import '../repositories/template_repository.dart';
 import '../../data/models/template_model.dart';
 import '../../data/models/enhanced_template_model.dart';
 import '../../data/repositories/advanced_template_collection.dart';
+import '../../data/repositories/domain_specific_templates.dart';
+import '../../data/datasources/local_storage_service.dart';
 
 /// Service for managing prompt templates with CRUD operations
 class TemplateService {
@@ -94,23 +95,9 @@ class TemplateService {
   /// Loads default templates from assets
   Future<void> loadDefaultTemplates() async {
     try {
-      final templateFiles = [
-        'assets/templates/creative_templates.json',
-        'assets/templates/email_polisher.json',
-        'assets/templates/flutter_app.json',
-        'assets/templates/software_templates.json',
-        'assets/templates/star_interview.json',
-      ];
-
-      for (final assetPath in templateFiles) {
-        try {
-          final jsonString = await rootBundle.loadString(assetPath);
-          await importFromJson(jsonString);
-        } catch (e) {
-          // Skip failed template loads
-          print('Failed to load $assetPath: $e');
-        }
-      }
+      // Delegate to LocalStorageService which properly handles asset loading
+      final localStorageService = Get.find<LocalStorageService>();
+      await localStorageService.loadDefaultTemplates();
     } catch (e) {
       print('Error loading default templates: $e');
     }
@@ -129,16 +116,18 @@ class TemplateService {
 
   /// Gets enhanced templates with AI features
   List<EnhancedTemplateModel> getAdvancedTemplates() {
-    return AdvancedTemplateCollection.getAdvancedTemplates();
+    final advancedTemplates = AdvancedTemplateCollection.getAdvancedTemplates();
+    final domainTemplates = DomainSpecificTemplates.getDomainTemplates();
+    return [...advancedTemplates, ...domainTemplates];
   }
 
-  /// Gets templates by category including advanced templates
-  // List<EnhancedTemplateModel> getTemplatesByCategory(String category) {
-  //   final advancedTemplates = getAdvancedTemplates();
-  //   return advancedTemplates
-  //       .where((template) => template.category == category)
-  //       .toList();
-  // }
+  /// Gets enhanced templates by category
+  List<EnhancedTemplateModel> getEnhancedTemplatesByCategory(String category) {
+    final advancedTemplates = getAdvancedTemplates();
+    return advancedTemplates
+        .where((template) => template.category == category)
+        .toList();
+  }
 
   /// Gets trending templates based on usage analytics
   List<EnhancedTemplateModel> getTrendingTemplates({int limit = 10}) {
@@ -148,24 +137,24 @@ class TemplateService {
     return advancedTemplates.take(limit).toList();
   }
 
-  // /// Search templates with AI-powered relevance scoring
-  // List<EnhancedTemplateModel> searchTemplates(String query) {
-  //   final advancedTemplates = getAdvancedTemplates();
-  //   if (query.isEmpty) return advancedTemplates;
+  /// Search enhanced templates with AI-powered relevance scoring
+  List<EnhancedTemplateModel> searchEnhancedTemplates(String query) {
+    final advancedTemplates = getAdvancedTemplates();
+    if (query.isEmpty) return advancedTemplates;
 
-  //   return advancedTemplates.where((template) {
-  //     final titleMatch =
-  //         template.title.toLowerCase().contains(query.toLowerCase());
-  //     final descMatch =
-  //         template.description.toLowerCase().contains(query.toLowerCase());
-  //     final categoryMatch =
-  //         template.category.toLowerCase().contains(query.toLowerCase());
-  //     final keywordMatch = template.aiMetadata?.extractedKeywords?.any(
-  //             (keyword) =>
-  //                 keyword.toLowerCase().contains(query.toLowerCase())) ??
-  //         false;
+    return advancedTemplates.where((template) {
+      final titleMatch =
+          template.title.toLowerCase().contains(query.toLowerCase());
+      final descMatch =
+          template.description.toLowerCase().contains(query.toLowerCase());
+      final categoryMatch =
+          template.category.toLowerCase().contains(query.toLowerCase());
+      final keywordMatch = template.aiMetadata?.extractedKeywords?.any(
+              (keyword) =>
+                  keyword.toLowerCase().contains(query.toLowerCase())) ??
+          false;
 
-  //     return titleMatch || descMatch || categoryMatch || keywordMatch;
-  //   }).toList();
-  // }
+      return titleMatch || descMatch || categoryMatch || keywordMatch;
+    }).toList();
+  }
 }
