@@ -100,18 +100,20 @@ class TemplateCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // Description
-                Text(
-                  template.description,
-                  style: const TextStyle(
-                    color: Color(0xFF5D6D7E),
-                    fontSize: 12,
-                    height: 1.3,
+                // Description - use Expanded to prevent overflow
+                Expanded(
+                  child: Text(
+                    template.description,
+                    style: const TextStyle(
+                      color: Color(0xFF5D6D7E),
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
                 // Footer with field count and date
                 Row(
@@ -122,15 +124,16 @@ class TemplateCard extends StatelessWidget {
                       color: Colors.grey[600],
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      '${template.rating.toStringAsFixed(1)} rating',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        '${template.rating.toStringAsFixed(1)} rating',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                    const Spacer(),
                     Text(
                       _formatDate(template.createdAt),
                       style: TextStyle(
@@ -139,11 +142,13 @@ class TemplateCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                ), // Tags if available
+                ),
+
+                // Tags if available - constrained height
                 if (template.tags.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   SizedBox(
-                    height: 20,
+                    height: 18,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount:

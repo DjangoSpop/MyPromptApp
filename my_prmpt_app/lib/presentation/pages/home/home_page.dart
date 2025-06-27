@@ -13,59 +13,76 @@ class HomePage extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Prompt Forge'),
-        actions: [
-          // Refresh button
-          Obx(() => IconButton(
-                onPressed: controller.isRefreshing.value
-                    ? null
-                    : controller.refreshTemplates,
-                icon: controller.isRefreshing.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-                tooltip: 'Refresh Templates',
-              )),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => Get.toNamed('/editor'),
-          ),
-          PopupMenuButton<String>(
-            onSelected: _handleMenuAction,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'import',
-                child: ListTile(
-                  leading: Icon(Icons.file_upload),
-                  title: Text('Import Templates'),
+    return Column(
+      children: [
+        // Custom app bar content
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Text(
+                'Prompt Forge',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
-              const PopupMenuItem(
-                value: 'export',
-                child: ListTile(
-                  leading: Icon(Icons.file_download),
-                  title: Text('Export All'),
-                ),
+              const Spacer(),
+              // Refresh button
+              Obx(() => IconButton(
+                    onPressed: controller.isRefreshing.value
+                        ? null
+                        : controller.refreshTemplates,
+                    icon: controller.isRefreshing.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh),
+                    tooltip: 'Refresh Templates',
+                  )),
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () => Get.toNamed('/editor'),
+              ),
+              PopupMenuButton<String>(
+                onSelected: _handleMenuAction,
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'import',
+                    child: ListTile(
+                      leading: Icon(Icons.file_upload),
+                      title: Text('Import Templates'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'export',
+                    child: ListTile(
+                      leading: Icon(Icons.file_download),
+                      title: Text('Export All'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Template status card
-          _buildTemplateStatusCard(),
-          // Search and filter
-          _buildSearchAndFilter(),
-          // Template grid
-          Expanded(child: _buildTemplateGrid()),
-        ],
-      ),
+        ),
+        // Template body content
+        Expanded(
+          child: Column(
+            children: [
+              // Template status card
+              _buildTemplateStatusCard(),
+              // Search and filter
+              _buildSearchAndFilter(),
+              // Template grid
+              Expanded(child: _buildTemplateGrid()),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

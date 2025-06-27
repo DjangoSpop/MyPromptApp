@@ -1,18 +1,19 @@
 // lib/domain/services/template_service.dart
 import 'dart:convert';
 import 'package:get/get.dart';
+import 'package:my_prmpt_app/data/datasources/local_storage_service.dart';
+import 'package:my_prmpt_app/data/models/enhanced_template_model.dart';
+import 'package:my_prmpt_app/data/repositories/advanced_template_collection.dart';
+import 'package:my_prmpt_app/data/repositories/domain_specific_templates.dart';
+import '../models/template_model.dart';
 import '../repositories/template_repository.dart';
-import '../../data/models/template_model.dart';
-import '../../data/models/enhanced_template_model.dart';
-import '../../data/repositories/advanced_template_collection.dart';
-import '../../data/repositories/domain_specific_templates.dart';
-import '../../data/datasources/local_storage_service.dart';
 
 /// Service for managing prompt templates with CRUD operations
 class TemplateService {
   final TemplateRepository _repository;
 
-  TemplateService(this._repository);
+  TemplateService({required TemplateRepository repository})
+      : _repository = repository;
 
   /// Retrieves all templates from storage
   Future<List<TemplateModel>> getAllTemplates() async {
@@ -156,5 +157,31 @@ class TemplateService {
 
       return titleMatch || descMatch || categoryMatch || keywordMatch;
     }).toList();
+  }
+
+  // /// Gets templates by category
+  // Future<List<TemplateModel>> getTemplatesByCategory(String category) async {
+  //   return await repository.getTemplatesByCategory(category);
+  // }
+
+  // /// Creates a new template
+  // Future<TemplateModel> createTemplate(TemplateModel template) async {
+  //   return await repository.createTemplate(template);
+  // }
+
+  // /// Updates an existing template
+  // Future<TemplateModel> updateTemplate(
+  //     String id, TemplateModel template) async {
+  //   return await repository.updateTemplate(id, template);
+  // }
+
+  // /// Deletes a template by ID
+  // Future<bool> deleteTemplate(String id) async {
+  //   return await repository.deleteTemplate(id);
+  // }
+
+  /// Retrieves all categories
+  Future<List<String>> getCategories() async {
+    return await _repository.getCategories();
   }
 }

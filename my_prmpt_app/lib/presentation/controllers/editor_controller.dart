@@ -1,7 +1,7 @@
 // lib/presentation/controllers/editor_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../data/models/template_model.dart';
+import '../../domain/models/template_model.dart';
 import '../../data/models/prompt_field.dart';
 import '../../domain/services/template_service.dart';
 
@@ -42,10 +42,10 @@ class EditorController extends GetxController {
     title.value = template.title;
     description.value = template.description;
     category.value = template.category;
-    templateContent.value = template.templateContent;
-    author.value = template.author ?? '';
-    tags.value = template.tags ?? [];
-    fields.value = List.from(template.fields);
+    templateContent.value = template.content;
+    author.value = template.createdBy;
+    tags.value = template.tags;
+    fields.value = []; // Domain model doesn't have fields, so default to empty
   }
 
   /// Initializes new template
@@ -73,12 +73,14 @@ class EditorController extends GetxController {
         title: title.value,
         description: description.value,
         category: category.value,
-        templateContent: templateContent.value,
-        fields: fields.toList(),
+        content: templateContent.value,
+        tags: tags.toList(),
+        createdBy: author.value.isEmpty ? 'anonymous' : author.value,
         createdAt: isEditMode.value ? DateTime.now() : DateTime.now(),
         updatedAt: DateTime.now(),
-        author: author.value.isEmpty ? null : author.value,
-        tags: tags.isEmpty ? null : tags.toList(),
+        usageCount: 0,
+        rating: 0.0,
+        isPublic: false,
       );
 
       await _templateService.saveTemplate(template);

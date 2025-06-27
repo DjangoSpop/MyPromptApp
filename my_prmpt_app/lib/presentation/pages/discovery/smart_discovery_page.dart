@@ -11,17 +11,15 @@ class SmartDiscoveryPage extends GetView<DiscoveryController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(context),
-          _buildSearchSection(),
-          _buildAISuggestionsSection(),
-          _buildTrendingSection(),
-          _buildPersonalizedSection(),
-          _buildCategoriesSection(),
-        ],
-      ),
+    return CustomScrollView(
+      slivers: [
+        _buildAppBar(context),
+        _buildSearchSection(),
+        _buildAISuggestionsSection(),
+        _buildTrendingSection(),
+        _buildPersonalizedSection(),
+        _buildCategoriesSection(),
+      ],
     );
   }
 
@@ -126,34 +124,37 @@ class SmartDiscoveryPage extends GetView<DiscoveryController> {
           ),
         ],
       ),
-      child: TextField(
-        onChanged: controller.performAISearch,
-        decoration: InputDecoration(
-          hintText: 'Describe what you want to create...',
-          prefixIcon: const Icon(Icons.psychology),
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Obx(
-                () => controller.isVoiceSearchActive.value
-                    ? const CircularProgressIndicator(strokeWidth: 2)
-                    : IconButton(
-                        icon: const Icon(Icons.mic),
-                        onPressed: controller.startVoiceSearch,
-                      ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: controller.clearSearch,
-              ),
-            ],
+      child: Material(
+        color: Colors.transparent,
+        child: TextField(
+          onChanged: controller.performAISearch,
+          decoration: InputDecoration(
+            hintText: 'Describe what you want to create...',
+            prefixIcon: const Icon(Icons.psychology),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(
+                  () => controller.isVoiceSearchActive.value
+                      ? const CircularProgressIndicator(strokeWidth: 2)
+                      : IconButton(
+                          icon: const Icon(Icons.mic),
+                          onPressed: controller.startVoiceSearch,
+                        ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: controller.clearSearch,
+                ),
+              ],
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.white,
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );
@@ -171,14 +172,17 @@ class SmartDiscoveryPage extends GetView<DiscoveryController> {
 
               return Container(
                 margin: const EdgeInsets.only(right: 8),
-                child: FilterChip(
-                  label: Text(filter),
-                  selected: isSelected,
-                  onSelected: (selected) => controller.toggleFilter(filter),
-                  backgroundColor: Colors.grey[100],
-                  selectedColor:
-                      Theme.of(context).primaryColor.withOpacity(0.2),
-                  checkmarkColor: Theme.of(context).primaryColor,
+                child: Material(
+                  color: Colors.transparent,
+                  child: FilterChip(
+                    label: Text(filter),
+                    selected: isSelected,
+                    onSelected: (selected) => controller.toggleFilter(filter),
+                    backgroundColor: Colors.grey[100],
+                    selectedColor:
+                        Theme.of(context).primaryColor.withOpacity(0.2),
+                    checkmarkColor: Theme.of(context).primaryColor,
+                  ),
                 ),
               );
             },
@@ -307,21 +311,30 @@ class SmartDiscoveryPage extends GetView<DiscoveryController> {
                   color: Colors.white,
                   size: 32,
                 ),
-                const Spacer(),
-                Text(
-                  category.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${category.templateCount} templates',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 12,
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${category.templateCount} templates',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

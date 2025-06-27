@@ -1,9 +1,10 @@
 // lib/presentation/controllers/ai_editor_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:my_prmpt_app/domain/models/template_model.dart';
 import 'package:my_prmpt_app/domain/models/ai_metadata.dart';
 import 'package:my_prmpt_app/domain/models/ai_insight.dart';
-import '../../data/models/template_model.dart';
+
 import '../../data/models/enhanced_template_model.dart';
 import '../../data/models/prompt_field.dart';
 import '../../domain/services/ai_context_engine.dart';
@@ -590,12 +591,14 @@ What would you like to work on?""";
         title: enhancedTemplate.title,
         description: enhancedTemplate.description,
         category: enhancedTemplate.category,
-        templateContent: enhancedTemplate.templateContent,
-        fields: enhancedTemplate.fields,
+        content: enhancedTemplate.templateContent,
+        tags: enhancedTemplate.tags ?? [],
+        createdBy: enhancedTemplate.author ?? 'anonymous',
         createdAt: enhancedTemplate.createdAt,
         updatedAt: enhancedTemplate.updatedAt,
-        author: enhancedTemplate.author,
-        tags: enhancedTemplate.tags,
+        usageCount: 0,
+        rating: 0.0,
+        isPublic: false,
       );
 
       await _templateService.saveTemplate(templateModel);
