@@ -118,6 +118,7 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
             Row(
               children: [
                 Expanded(
+                  flex: 2, // Give more space to dropdown
                   child: Obx(() => DropdownButtonFormField<String>(
                         value: controller.category.value.isEmpty
                             ? null
@@ -128,24 +129,36 @@ class AIAssistedEditorPage extends GetView<AIEditorController> {
                           labelText: 'Category',
                           border: OutlineInputBorder(),
                         ),
+                        isExpanded: true, // Prevents overflow
                         items: const [
                           DropdownMenuItem(
-                              value: 'General', child: Text('General')),
+                              value: 'General',
+                              child: Text('General',
+                                  overflow: TextOverflow.ellipsis)),
                           DropdownMenuItem(
                               value: 'Software Engineering',
-                              child: Text('Software Engineering')),
+                              child: Text('Software Engineering',
+                                  overflow: TextOverflow.ellipsis)),
                           DropdownMenuItem(
                               value: 'Business Strategy',
-                              child: Text('Business Strategy')),
+                              child: Text('Business Strategy',
+                                  overflow: TextOverflow.ellipsis)),
                           DropdownMenuItem(
                               value: 'Creative Content',
-                              child: Text('Creative Content')),
+                              child: Text('Creative Content',
+                                  overflow: TextOverflow.ellipsis)),
                           DropdownMenuItem(
-                              value: 'Education', child: Text('Education')),
+                              value: 'Education',
+                              child: Text('Education',
+                                  overflow: TextOverflow.ellipsis)),
                           DropdownMenuItem(
-                              value: 'Research', child: Text('Research')),
+                              value: 'Research',
+                              child: Text('Research',
+                                  overflow: TextOverflow.ellipsis)),
                           DropdownMenuItem(
-                              value: 'Marketing', child: Text('Marketing')),
+                              value: 'Marketing',
+                              child: Text('Marketing',
+                                  overflow: TextOverflow.ellipsis)),
                         ],
                       )),
                 ),

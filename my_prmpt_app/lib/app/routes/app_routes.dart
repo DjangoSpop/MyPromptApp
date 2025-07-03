@@ -1,28 +1,38 @@
 import 'package:get/get.dart';
+import 'package:my_prmpt_app/domain/services/learning_service.dart';
 import 'package:my_prmpt_app/presentation/controllers/discovery_controller.dart';
-import '../../presentation/pages/home/home_page.dart';
-import '../../presentation/pages/home/gamified_home_page.dart';
-import '../../presentation/pages/settings/discord_settings_page.dart';
-import '../../presentation/pages/wizard/prompt_wizard_page.dart';
-import '../../presentation/pages/wizard/enhanced_wizard_page.dart';
-import '../../presentation/pages/editor/template_editor_page.dart';
-import '../../presentation/pages/editor/ai_assisted_editor_page.dart';
-import '../../presentation/pages/viewer/result_viewer_page.dart';
-import '../../presentation/pages/viewer/learning_hub_view.dart';
-import '../../presentation/pages/templates/template_list_page.dart';
-import '../../presentation/pages/discovery/smart_discovery_page.dart';
+import 'package:my_prmpt_app/presentation/controllers/learning_controller.dart';
+import 'package:my_prmpt_app/presentation/controllers/optimized_template_controller.dart';
+
+import '../../app/middleware/auth_middleware.dart';
+import '../../core/bindings/app_bindings.dart';
+import '../../domain/services/gamification_service.dart';
+import '../../presentation/controllers/ai_editor_controller.dart';
+import '../../presentation/controllers/editor_controller.dart';
+import '../../presentation/controllers/home_controller.dart';
+import '../../presentation/controllers/wizard_controller.dart';
+import '../../presentation/mobile/enhanced_mobile_interface.dart';
 import '../../presentation/pages/auth/discord_login_page.dart';
 import '../../presentation/pages/auth/discord_register_page.dart';
 import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/register_page.dart';
+import '../../presentation/pages/dashboard/dashboard_page.dart';
+import '../../presentation/pages/discovery/smart_discovery_page.dart';
+import '../../presentation/pages/editor/ai_assisted_editor_page_new.dart';
+import '../../presentation/pages/editor/template_editor_page.dart';
+import '../../presentation/pages/favorites/favorites_page.dart';
+import '../../presentation/pages/help/help_center_page.dart';
+import '../../presentation/pages/history/history_page.dart';
+import '../../presentation/pages/home/gamified_home_page.dart';
+import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/profile/discord_profile_page.dart';
-import '../../presentation/mobile/enhanced_mobile_interface.dart';
-import '../../presentation/controllers/home_controller.dart';
-import '../../presentation/controllers/wizard_controller.dart';
-import '../../presentation/controllers/editor_controller.dart';
-import '../../presentation/controllers/ai_editor_controller.dart';
-import '../../core/bindings/app_bindings.dart';
-import '../../app/middleware/auth_middleware.dart';
+import '../../presentation/pages/settings/discord_settings_page.dart';
+import '../../presentation/pages/settings/settings_page.dart';
+import '../../presentation/pages/templates/template_list_page.dart';
+import '../../presentation/pages/viewer/learning_hub_view.dart';
+import '../../presentation/pages/viewer/result_viewer_page.dart';
+import '../../presentation/pages/wizard/enhanced_wizard_page.dart';
+import '../../presentation/pages/wizard/prompt_wizard_page.dart';
 
 /// Application routes configuration
 class AppRoutes {
@@ -31,6 +41,8 @@ class AppRoutes {
   static const String gamifiedHome = '/gamified-home';
   static const String discovery = '/discovery';
   static const String templates = '/templates';
+  static const String favorites = '/favorites';
+  static const String history = '/history';
   static const String profile = '/profile';
 
   // Feature routes
@@ -49,6 +61,8 @@ class AppRoutes {
 
   // Settings routes
   static const String settings = '/settings';
+  static const String help = '/help';
+  static const String dashboard = '/dashboard';
 
   // Main app interface
   static const String mobileInterface = '/mobile';
@@ -70,6 +84,7 @@ class AppRoutes {
       page: () => const GamifiedHomePage(),
       binding: BindingsBuilder(() {
         Get.lazyPut<HomeController>(() => HomeController());
+        Get.lazyPut<GamificationService>(() => GamificationService());
       }),
     ),
     GetPage(
@@ -82,6 +97,18 @@ class AppRoutes {
     GetPage(
       name: templates,
       page: () => const TemplateListPage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<OptimizedTemplateController>(
+            () => OptimizedTemplateController());
+      }),
+    ),
+    GetPage(
+      name: favorites,
+      page: () => const FavoritesPage(),
+    ),
+    GetPage(
+      name: history,
+      page: () => const HistoryPage(),
     ),
 
     // Feature Routes
@@ -108,7 +135,7 @@ class AppRoutes {
     ),
     GetPage(
       name: aiEditor,
-      page: () => const AIAssistedEditorPage(),
+      page: () => const AINewAssistedEditorPage(),
       binding: BindingsBuilder(() {
         Get.lazyPut<AIEditorController>(() => AIEditorController());
       }),
@@ -120,6 +147,10 @@ class AppRoutes {
     GetPage(
       name: learningHub,
       page: () => LearningHubView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<LearningService>(() => LearningService());
+        Get.lazyPut<LearningController>(() => LearningController());
+      }),
     ),
 
     // Auth Routes
@@ -155,10 +186,23 @@ class AppRoutes {
     ),
     GetPage(
       name: settings,
-      page: () => const DiscordSettingsPage(),
+      page: () => const SettingsPage(),
       binding: BindingsBuilder(() {
         Get.lazyPut(() => DiscoveryController());
       }),
+      middlewares: [AuthMiddleware()],
+    ),
+
+    // Help & Support Routes
+    GetPage(
+      name: help,
+      page: () => const HelpCenterPage(),
+    ),
+
+    // Dashboard Route
+    GetPage(
+      name: dashboard,
+      page: () => const DashboardPage(),
       middlewares: [AuthMiddleware()],
     ),
   ];

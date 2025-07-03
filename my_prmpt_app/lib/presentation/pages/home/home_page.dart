@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:get/get.dart';
 
+import '../../../data/models/template_api_models.dart';
 import '../../controllers/home_controller.dart';
 import '../../widgets/template_card.dart' as template;
-import '../../../data/models/template_api_models.dart';
 
 /// Home page displaying template gallery
 class HomePage extends GetView<HomeController> {
@@ -71,16 +71,52 @@ class HomePage extends GetView<HomeController> {
         ),
         // Template body content
         Expanded(
-          child: Column(
-            children: [
-              // Template status card
-              _buildTemplateStatusCard(),
-              // Search and filter
-              _buildSearchAndFilter(),
-              // Template grid
-              Expanded(child: _buildTemplateGrid()),
-            ],
-          ),
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (controller.filteredTemplates.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return CustomScrollView(
+              slivers: [
+                // Template Status Card
+                SliverToBoxAdapter(child: _buildTemplateStatusCard()),
+
+                // Search + Category Filter
+                SliverToBoxAdapter(child: _buildSearchAndFilter()),
+
+                // Templates Grid
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverGrid(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = controller.filteredTemplates[index];
+                        return template.TemplateCard(
+                          template: item,
+                          onTap: () => _openWizard(item),
+                          onEdit: () => _editTemplate(item),
+                          onDuplicate: () => controller.duplicateTemplate(item),
+                          onDelete: () => _confirmDelete(item),
+                        );
+                      },
+                      childCount: controller.filteredTemplates.length,
+                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.8,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
         ),
       ],
     );

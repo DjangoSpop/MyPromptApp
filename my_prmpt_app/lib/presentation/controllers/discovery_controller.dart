@@ -21,7 +21,8 @@ class Category {
 }
 
 class DiscoveryController extends GetxController {
-  final ai_engine.AIContextEngine _aiContextEngine = Get.find<ai_engine.AIContextEngine>();
+  final ai_engine.AIContextEngine _aiContextEngine =
+      Get.find<ai_engine.AIContextEngine>();
   final TemplateAnalyticsService _analyticsService =
       Get.find<TemplateAnalyticsService>();
 
@@ -113,14 +114,88 @@ class DiscoveryController extends GetxController {
   }
 
   Future<void> _loadTrendingTemplates() async {
-    // TODO: Load actual template models from repository
-    // For now, using placeholder data
-    trendingTemplates.clear();
+    // Simulate loading trending templates with mock data
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final mockTrendingTemplates = [
+      TemplateModel(
+        id: 'trending_1',
+        title: 'AI Code Review Assistant',
+        description:
+            'Get comprehensive code reviews with AI-powered insights and suggestions for improvement.',
+        category: 'Software Engineering',
+        templateContent: 'Please review the following code...',
+        fields: [],
+        tags: ['code', 'review', 'ai', 'programming'],
+        author: 'AI Assistant',
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      TemplateModel(
+        id: 'trending_2',
+        title: 'Business Strategy Canvas',
+        description:
+            'Create comprehensive business strategies with this proven framework template.',
+        category: 'Business Strategy',
+        templateContent: 'Business Model Canvas for...',
+        fields: [],
+        tags: ['business', 'strategy', 'planning', 'canvas'],
+        author: 'Strategy Expert',
+        createdAt: DateTime.now().subtract(const Duration(days: 5)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      TemplateModel(
+        id: 'trending_3',
+        title: 'Creative Story Generator',
+        description:
+            'Generate engaging stories with compelling characters and plot twists.',
+        category: 'Creative Content',
+        templateContent: 'Create a story about...',
+        fields: [],
+        tags: ['story', 'creative', 'writing', 'fiction'],
+        author: 'Creative Writer',
+        createdAt: DateTime.now().subtract(const Duration(days: 3)),
+        updatedAt: DateTime.now().subtract(const Duration(hours: 12)),
+      ),
+    ];
+
+    trendingTemplates.assignAll(mockTrendingTemplates);
   }
 
   Future<void> _loadPersonalizedRecommendations() async {
-    // TODO: Implement personalized recommendations based on user history
-    personalizedTemplates.clear();
+    // Simulate loading personalized recommendations based on user history
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    final mockPersonalizedTemplates = [
+      TemplateModel(
+        id: 'personal_1',
+        title: 'Flutter Widget Documentation',
+        description:
+            'Generate comprehensive documentation for your Flutter widgets automatically.',
+        category: 'Software Engineering',
+        templateContent: 'Document the following Flutter widget...',
+        fields: [],
+        tags: ['flutter', 'documentation', 'widget', 'mobile'],
+        author: 'Flutter Dev',
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        updatedAt: DateTime.now().subtract(const Duration(hours: 6)),
+      ),
+      TemplateModel(
+        id: 'personal_2',
+        title: 'Project Proposal Template',
+        description:
+            'Create professional project proposals that win clients and secure funding.',
+        category: 'Business Strategy',
+        templateContent: 'Project Proposal for...',
+        fields: [],
+        tags: ['proposal', 'project', 'business', 'professional'],
+        author: 'Business Consultant',
+        createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        updatedAt: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+    ];
+
+    personalizedTemplates.assignAll(mockPersonalizedTemplates);
   }
 
   Future<void> _generateInitialAISuggestions() async {

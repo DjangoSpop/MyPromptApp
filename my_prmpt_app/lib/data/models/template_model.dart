@@ -1,5 +1,8 @@
 // lib/data/models/template_model.dart
 import 'package:hive/hive.dart';
+import 'package:my_prmpt_app/data/models/api_models.dart';
+import 'package:my_prmpt_app/data/models/template_api_models.dart'
+    show TemplateListItem;
 import 'prompt_field.dart';
 
 part 'template_model.g.dart';
@@ -88,8 +91,83 @@ class TemplateModel extends HiveObject {
       if (tags != null) 'tags': tags,
     };
   }
+  // Convenience factory builders -------------------------------------
+  // ------------------------------------------------------------------
 
-  /// Creates a copy with updated fields
+  /// Build from **ApiTemplate** (coming from DRF backend).
+  factory TemplateModel.fromApi(ApiTemplate api) => TemplateModel(
+        id: api.id,
+        title: api.title,
+        description: api.description,
+        category: api.category?.name ?? 'General',
+        templateContent: api.templateContent ?? '',
+        fields: api.fields?.map(_fromApiField).toList() ?? const [],
+        createdAt: api.createdAt,
+        updatedAt: api.updatedAt,
+        author: api.author,
+        version: api.version ?? '1.0.0',
+        tags: api.tags ?? const [],
+      );
+
+  static PromptField _fromApiField(ApiPromptField f) => PromptField(
+        id: f.id ?? '',
+        label: f.label,
+        placeholder: f.placeholder ?? '',
+        type: _mapFieldType(f.fieldType),
+        isRequired: f.isRequired ?? false,
+        options: f.options?.cast<String>(),
+        defaultValue: f.defaultValue,
+        validationPattern: f.defaultValue,
+        helpText: f.helpText,
+      );
+
+  static FieldType _mapFieldType(String? t) {
+    switch (t?.toLowerCase()) {
+      case 'textarea':
+        return FieldType.textarea;
+      case 'dropdown':
+        return FieldType.dropdown;
+      case 'checkbox':
+        return FieldType.checkbox;
+      case 'radio':
+        return FieldType.radio;
+      case 'number':
+        return FieldType.number;
+      default:
+        return FieldType.text;
+    }
+  }
+
+  /// Build from **TemplateListItem** – the lightweight card DTO.
+  factory TemplateModel.fromListItem(TemplateListItem item) => TemplateModel(
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        templateContent: '',
+        fields: const [],
+        createdAt: item.createdAt,
+        updatedAt: item.createdAt,
+        author: null,
+        tags: item.tags,
+      );
+
+  /// Quick error placeholder – handy for UI fallbacks.
+  factory TemplateModel.error({required String id, required String message}) =>
+      TemplateModel(
+        id: id,
+        title: 'Error',
+        description: message,
+        category: 'Error',
+        templateContent: message,
+        fields: const [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        author: 'System',
+      );
+
+  // ------------------------------------------------------------------
+  // Copy util ---------------------------------------------------------
   TemplateModel copyWith({
     String? title,
     String? description,
@@ -99,19 +177,45 @@ class TemplateModel extends HiveObject {
     String? author,
     String? version,
     List<String>? tags,
-  }) {
-    return TemplateModel(
-      id: id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      category: category ?? this.category,
-      templateContent: templateContent ?? this.templateContent,
-      fields: fields ?? this.fields,
-      createdAt: createdAt,
-      updatedAt: DateTime.now(),
-      author: author ?? this.author,
-      version: version ?? this.version,
-      tags: tags ?? this.tags,
-    );
-  }
+  }) =>
+      TemplateModel(
+        id: id,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        category: category ?? this.category,
+        templateContent: templateContent ?? this.templateContent,
+        fields: fields ?? this.fields,
+        createdAt: createdAt,
+        updatedAt: DateTime.now(),
+        author: author ?? this.author,
+        version: version ?? this.version,
+        tags: tags ?? this.tags,
+      );
 }
+
+  // /// Creates a copy with updated fields
+  // TemplateModel copyWith({
+  //   String? title,
+  //   String? description,
+  //   String? category,
+  //   String? templateContent,
+  //   List<PromptField>? fields,
+  //   String? author,
+  //   String? version,
+  //   List<String>? tags,
+  // }) {
+  //   return TemplateModel(
+  //     id: id,
+  //     title: title ?? this.title,
+  //     description: description ?? this.description,
+  //     category: category ?? this.category,
+  //     templateContent: templateContent ?? this.templateContent,
+  //     fields: fields ?? this.fields,
+  //     createdAt: createdAt,
+  //     updatedAt: DateTime.now(),
+  //     author: author ?? this.author,
+  //     version: version ?? this.version,
+  //     tags: tags ?? this.tags,
+  //   );
+  // }
+

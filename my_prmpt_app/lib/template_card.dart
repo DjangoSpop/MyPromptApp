@@ -74,17 +74,19 @@ class TemplateCard extends StatelessWidget {
                 // Category chip and options menu
                 Row(
                   children: [
-                    Chip(
-                      label: Text(
-                        template.category,
-                        style: const TextStyle(fontSize: 10),
+                    Expanded(
+                      child: Chip(
+                        label: Text(
+                          template.category,
+                          style: const TextStyle(fontSize: 10),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.zero,
+                        backgroundColor: _getCategoryColor(template.category),
+                        labelStyle: const TextStyle(color: Colors.white),
                       ),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      padding: EdgeInsets.zero,
-                      backgroundColor: _getCategoryColor(template.category),
-                      labelStyle: const TextStyle(color: Colors.white),
                     ),
-                    const Spacer(),
                     PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert, size: 18),
                       padding: EdgeInsets.zero,
@@ -122,7 +124,8 @@ class TemplateCard extends StatelessWidget {
                           value: 'delete',
                           child: ListTile(
                             leading: Icon(Icons.delete, color: Colors.red),
-                            title: Text('Delete', style: TextStyle(color: Colors.red)),
+                            title: Text('Delete',
+                                style: TextStyle(color: Colors.red)),
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
@@ -130,9 +133,9 @@ class TemplateCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Title
                 Text(
                   template.title,
@@ -143,9 +146,9 @@ class TemplateCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Description
                 Expanded(
                   child: Text(
@@ -158,9 +161,9 @@ class TemplateCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Footer with field count and updated date
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -191,7 +194,7 @@ class TemplateCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 // Tags if available
                 if (template.tags?.isNotEmpty ?? false) ...[
                   const SizedBox(height: 8),
@@ -201,7 +204,7 @@ class TemplateCard extends StatelessWidget {
                     children: template.tags!.take(3).map((tag) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6, 
+                          horizontal: 6,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
@@ -228,7 +231,7 @@ class TemplateCard extends StatelessWidget {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date).inDays;
-    
+
     if (difference == 0) {
       return 'Today';
     } else if (difference == 1) {
@@ -244,7 +247,7 @@ class TemplateCard extends StatelessWidget {
   Color _getCategoryColor(String category) {
     // Create deterministic color based on category name
     final hash = category.hashCode.abs();
-    
+
     // Pre-defined colors with good contrast
     const colors = [
       Color(0xFF1E88E5), // Blue
@@ -264,7 +267,7 @@ class TemplateCard extends StatelessWidget {
       Color(0xFF757575), // Grey
       Color(0xFF546E7A), // Blue Grey
     ];
-    
+
     return colors[hash % colors.length];
   }
 }

@@ -1,6 +1,7 @@
 // lib/presentation/controllers/home_controller.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../data/models/template_api_models.dart';
 import '../../data/services/hybrid_template_service.dart';
 
@@ -20,6 +21,33 @@ class HomeController extends GetxController {
   // Template statistics
   final RxInt totalTemplates = 0.obs;
   final RxMap<String, int> templatesByCategory = <String, int>{}.obs;
+  void fetchTemplates() async {
+    try {
+      isLoading.value = true;
+
+      final fetched = await _templateService.getTemplates(); // your API
+      templates.assignAll(fetched);
+      applyFilters(); // VERY IMPORTANT
+    } catch (e) {
+      Get.snackbar('Error', 'Could not fetch templates');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void applyFilters() {
+    final query = searchQuery.value.toLowerCase();
+    final category = selectedCategory.value;
+
+    final results = templates.where((template) {
+      final matchesQuery = template.title.toLowerCase().contains(query);
+      final matchesCategory =
+          category == 'All' || template.category.toString() == category;
+      return matchesQuery && matchesCategory;
+    }).toList();
+
+    filteredTemplates.assignAll(results);
+  }
 
   @override
   void onInit() {
