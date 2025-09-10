@@ -64,6 +64,13 @@ class HomePage extends GetView<HomeController> {
                       title: Text('Export All'),
                     ),
                   ),
+                  const PopupMenuItem(
+                    value: 'django_test',
+                    child: ListTile(
+                      leading: Icon(Icons.api),
+                      title: Text('Django API Test'),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -362,6 +369,9 @@ class HomePage extends GetView<HomeController> {
         break;
       case 'export':
         _exportAllTemplates();
+        break;
+      case 'django_test':
+        Get.toNamed('/django-test');
         break;
     }
   }

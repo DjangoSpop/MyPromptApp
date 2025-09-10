@@ -7,12 +7,13 @@ import 'app/routes/app_routes.dart';
 import 'core/bindings/app_bindings.dart';
 // Core imports
 import 'core/design_system/discord_design_system.dart';
+import 'core/services/app_initialization_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive
-  await Hive.initFlutter();
+  // Initialize core services first
+  Get.put(AppInitializationService(), permanent: true);
 
   runApp(const PromptCraftApp());
 }
@@ -41,7 +42,7 @@ class PromptCraftApp extends StatelessWidget {
       theme: DiscordDesignSystem.darkTheme,
       darkTheme: DiscordDesignSystem.darkTheme,
       themeMode: ThemeMode.dark,
-      initialRoute: '/mobile',
+      initialRoute: '/splash',
       getPages: AppRoutes.routes,
       initialBinding: AppBindings(),
       debugShowCheckedModeBanner: false,

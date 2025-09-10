@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:my_prmpt_app/domain/models/template_model.dart';
 import 'package:my_prmpt_app/domain/models/ai_metadata.dart';
 import 'package:my_prmpt_app/domain/models/ai_insight.dart';
+import 'package:my_prmpt_app/domain/models/ai_context.dart';
 
 import '../../data/models/enhanced_template_model.dart';
 import '../../data/models/prompt_field.dart';

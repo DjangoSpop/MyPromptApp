@@ -1,17 +1,18 @@
-// ============================================
+// ===========================================
 // MISSING ESSENTIAL PAGES
-// ============================================
+// ===========================================
 // These pages complete the PromptCraft application
-
-// ============================================
-// 1. LOGIN PAGE
-// ============================================
-// lib/presentation/pages/auth/login_page.dart
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../controllers/auth_controller.dart';
 import '../../../core/design_system/discord_design_system.dart';
+import '../../controllers/gamified_home_controller.dart';
+
+// ===========================================
+// 1. LOGIN PAGE
+// ===========================================
+// lib/presentation/pages/auth/login_page.dart
 
 class LoginPage extends GetView<AuthController> {
   const LoginPage({super.key});
@@ -170,15 +171,10 @@ class LoginPage extends GetView<AuthController> {
   }
 }
 
-// ============================================
+// ===========================================
 // 2. REGISTER PAGE
-// ============================================
+// ===========================================
 // lib/presentation/pages/auth/register_page.dart
-
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../controllers/auth_controller.dart';
-import '../../../core/design_system/discord_design_system.dart';
 
 class RegisterPage extends GetView<AuthController> {
   const RegisterPage({super.key});
@@ -382,15 +378,10 @@ class RegisterPage extends GetView<AuthController> {
   }
 }
 
-// ============================================
+// ===========================================
 // 3. GAMIFIED HOME PAGE
-// ============================================
+// ===========================================
 // lib/presentation/pages/home/gamified_home_page.dart
-
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../controllers/gamified_home_controller.dart';
-import '../../../core/design_system/discord_design_system.dart';
 
 class GamifiedHomePage extends GetView<GamifiedHomeController> {
   const GamifiedHomePage({super.key});
@@ -861,15 +852,10 @@ class GamifiedHomePage extends GetView<GamifiedHomeController> {
   }
 }
 
-// ============================================
+// ===========================================
 // 4. DISCORD PROFILE PAGE
-// ============================================
+// ===========================================
 // lib/presentation/pages/profile/discord_profile_page.dart
-
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../controllers/auth_controller.dart';
-import '../../../core/design_system/discord_design_system.dart';
 
 class DiscordProfilePage extends GetView<AuthController> {
   const DiscordProfilePage({super.key});

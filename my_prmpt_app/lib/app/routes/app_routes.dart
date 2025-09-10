@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
-import 'package:my_prmpt_app/domain/services/learning_service.dart';
-import 'package:my_prmpt_app/presentation/controllers/discovery_controller.dart';
-import 'package:my_prmpt_app/presentation/controllers/learning_controller.dart';
-import 'package:my_prmpt_app/presentation/controllers/optimized_template_controller.dart';
+import '../../domain/services/learning_service.dart';
+import '../../presentation/controllers/discovery_controller.dart';
+import '../../presentation/controllers/learning_controller.dart';
+import '../../presentation/controllers/optimized_template_controller.dart';
+import '../../presentation/controllers/gamified_home_controller.dart';
+import '../../data/services/promptcraft_api_service.dart';
 
 import '../../app/middleware/auth_middleware.dart';
 import '../../core/bindings/app_bindings.dart';
@@ -10,7 +12,7 @@ import '../../domain/services/gamification_service.dart';
 import '../../presentation/controllers/ai_editor_controller.dart';
 import '../../presentation/controllers/editor_controller.dart';
 import '../../presentation/controllers/home_controller.dart';
-import '../../presentation/controllers/wizard_controller.dart';
+import '../../presentation/controllers/fixed_wizard_controller.dart';
 import '../../presentation/mobile/enhanced_mobile_interface.dart';
 import '../../presentation/pages/auth/discord_login_page.dart';
 import '../../presentation/pages/auth/discord_register_page.dart';
@@ -24,21 +26,26 @@ import '../../presentation/pages/favorites/favorites_page.dart';
 import '../../presentation/pages/help/help_center_page.dart';
 import '../../presentation/pages/history/history_page.dart';
 import '../../presentation/pages/home/gamified_home_page.dart';
+import '../../presentation/pages/home/enhanced_gamified_home_page.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/profile/discord_profile_page.dart';
 import '../../presentation/pages/settings/discord_settings_page.dart';
 import '../../presentation/pages/settings/settings_page.dart';
 import '../../presentation/pages/templates/template_list_page.dart';
+import '../../presentation/pages/testing/django_connection_test_page.dart';
 import '../../presentation/pages/viewer/learning_hub_view.dart';
 import '../../presentation/pages/viewer/result_viewer_page.dart';
 import '../../presentation/pages/wizard/enhanced_wizard_page.dart';
 import '../../presentation/pages/wizard/prompt_wizard_page.dart';
+import '../../presentation/pages/splash/splash_screen.dart';
 
 /// Application routes configuration
 class AppRoutes {
   // Main navigation routes
+  static const String splash = '/splash';
   static const String home = '/home';
   static const String gamifiedHome = '/gamified-home';
+  static const String enhancedGamifiedHome = '/enhanced-gamified-home';
   static const String discovery = '/discovery';
   static const String templates = '/templates';
   static const String favorites = '/favorites';
@@ -64,9 +71,19 @@ class AppRoutes {
   static const String help = '/help';
   static const String dashboard = '/dashboard';
 
+  // Testing routes
+  static const String djangoTest = '/django-test';
+
   // Main app interface
   static const String mobileInterface = '/mobile';
   static List<GetPage> routes = [
+    // Splash Screen
+    GetPage(
+      name: splash,
+      page: () => const SplashScreen(),
+      binding: AppBindings(),
+    ),
+    
     // Main Navigation Routes
     GetPage(
       name: mobileInterface,
@@ -85,6 +102,14 @@ class AppRoutes {
       binding: BindingsBuilder(() {
         Get.lazyPut<HomeController>(() => HomeController());
         Get.lazyPut<GamificationService>(() => GamificationService());
+      }),
+    ),
+    GetPage(
+      name: enhancedGamifiedHome,
+      page: () => const EnhancedGamifiedHomePage(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut(() => Get.find<GamificationService>());
+        Get.lazyPut(() => Get.find<PromptCraftApiService>());
       }),
     ),
     GetPage(
@@ -116,14 +141,14 @@ class AppRoutes {
       name: wizard,
       page: () => const PromptWizardPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut<WizardController>(() => WizardController());
+        Get.lazyPut<FixedWizardController>(() => FixedWizardController());
       }),
     ),
     GetPage(
       name: enhancedWizard,
       page: () => const EnhancedWizardPage(),
       binding: BindingsBuilder(() {
-        Get.lazyPut<WizardController>(() => WizardController());
+        Get.lazyPut<FixedWizardController>(() => FixedWizardController());
       }),
     ),
     GetPage(
@@ -204,6 +229,12 @@ class AppRoutes {
       name: dashboard,
       page: () => const DashboardPage(),
       middlewares: [AuthMiddleware()],
+    ),
+
+    // Testing Routes
+    GetPage(
+      name: djangoTest,
+      page: () => const DjangoConnectionTestPage(),
     ),
   ];
 }

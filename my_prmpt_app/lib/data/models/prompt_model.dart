@@ -1,9 +1,9 @@
-// models/prompt_model.dart
+// lib/data/models/prompt_model.dart
 import 'package:hive/hive.dart';
 
 part 'prompt_model.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 4)
 class PromptModel extends HiveObject {
   @HiveField(0)
   String id;

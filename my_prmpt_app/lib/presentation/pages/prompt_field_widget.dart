@@ -248,6 +248,8 @@ class FieldInputWidget extends StatelessWidget {
                 title: Text(option),
                 value: option,
                 groupValue: value?.toString() ?? field.defaultValue,
+                toggleable: true,
+                selected: (value?.toString() ?? field.defaultValue) == option,
                 onChanged: (newValue) {
                   if (newValue != null) {
                     onChanged(newValue);

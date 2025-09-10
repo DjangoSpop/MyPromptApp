@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../data/models/template_api_models.dart';
+import '../../data/services/django_api_service.dart';
 import '../../data/services/hybrid_template_service.dart';
+import '../../data/services/unified_api_service.dart';
 
 /// Controller for home page template management
 class HomeController extends GetxController {
   final HybridTemplateService _templateService =
       Get.find<HybridTemplateService>();
+  final DjangoApiService _djangoApiService = Get.find<DjangoApiService>();
+  final UnifiedApiService _unifiedApiService = Get.find<UnifiedApiService>();
 
   final RxList<TemplateListItem> templates = <TemplateListItem>[].obs;
   final RxList<TemplateListItem> filteredTemplates = <TemplateListItem>[].obs;
@@ -219,5 +223,193 @@ class HomeController extends GetxController {
     if (isRefreshing.value) return 'Refreshing...';
     if (templates.isEmpty) return 'No templates loaded';
     return '${totalTemplates.value} templates loaded';
+  }
+
+  // ================================
+  // Django Backend Integration
+  // ================================
+
+  /// Test connection to Django backend
+  Future<bool> testDjangoConnection() async {
+    try {
+      isLoading.value = true;
+      final isConnected = await _djangoApiService.testConnection();
+
+      if (isConnected) {
+        Get.snackbar(
+          'Success',
+          'Connected to Django backend successfully',
+          backgroundColor: Colors.green[100],
+          colorText: Colors.green[800],
+        );
+      } else {
+        Get.snackbar(
+          'Error',
+          'Failed to connect to Django backend',
+          backgroundColor: Colors.red[100],
+          colorText: Colors.red[800],
+        );
+      }
+
+      return isConnected;
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Django connection error: $e',
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[800],
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Fetch templates from Django backend
+  Future<void> fetchTemplatesFromDjango() async {
+    try {
+      isLoading.value = true;
+
+      // Get templates from Django API
+      final response = await _unifiedApiService.getTemplates();
+
+      if (response.results.isNotEmpty) {
+        // Convert API templates to local format
+        final apiTemplates = response.results.map((apiTemplate) {
+          return TemplateListItem(
+            id: apiTemplate.id,
+            title: apiTemplate.title,
+            description: apiTemplate.description,
+            category: apiTemplate.category?.name ?? 'General',
+            tags: apiTemplate.tags ?? [],
+            rating: apiTemplate.averageRating.toDouble(),
+            usageCount: apiTemplate.usageCount,
+            createdAt: apiTemplate.createdAt,
+            isPublic: apiTemplate.isPublic,
+            isPremium: false,
+            fields: [],
+          );
+        }).toList();
+
+        templates.assignAll(apiTemplates.cast<TemplateListItem>());
+        _filterTemplates();
+
+        Get.snackbar(
+          'Success',
+          'Loaded ${apiTemplates.length} templates from Django backend',
+          backgroundColor: Colors.green[100],
+          colorText: Colors.green[800],
+        );
+      } else {
+        Get.snackbar(
+          'Info',
+          'No templates found on Django backend',
+          backgroundColor: Colors.blue[100],
+          colorText: Colors.blue[800],
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to fetch templates from Django: $e',
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[800],
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Search templates using Django library search
+  Future<void> searchTemplatesWithDjango(String query) async {
+    try {
+      isLoading.value = true;
+      searchQuery.value = query;
+
+      final response = await _djangoApiService.searchLibrary(
+        query: query,
+        limit: 50,
+      );
+
+      if (response.containsKey('results') && response['results'] is List) {
+        final results = response['results'] as List;
+        final searchResults = results.map((item) {
+          return TemplateListItem(
+            id: item['id']?.toString() ?? '',
+            title: item['title']?.toString() ?? 'Untitled',
+            description: item['description']?.toString() ?? '',
+            category: item['category']?.toString() ?? 'General',
+            tags: (item['tags'] as List?)?.map((t) => t.toString()).toList() ??
+                [],
+            rating: (item['rating'] ?? 0.0).toDouble(),
+            usageCount: item['usage_count'] ?? 0,
+            createdAt:
+                DateTime.tryParse(item['created_at']?.toString() ?? '') ??
+                    DateTime.now(),
+            isPublic: item['is_public'] ?? true,
+            isPremium: false,
+            fields: [],
+          );
+        }).toList();
+
+        filteredTemplates.assignAll(searchResults.cast<TemplateListItem>());
+
+        Get.snackbar(
+          'Success',
+          'Found ${searchResults.length} templates matching "$query"',
+          backgroundColor: Colors.green[100],
+          colorText: Colors.green[800],
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Search failed: $e',
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[800],
+      );
+      // Fallback to local search
+      _filterTemplates();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Bootstrap library from Django backend
+  Future<void> bootstrapLibrary() async {
+    try {
+      isLoading.value = true;
+
+      final response = await _djangoApiService.bootstrapLibrary(
+        forceRefresh: true,
+      );
+
+      if (response.containsKey('status') && response['status'] == 'success') {
+        await fetchTemplatesFromDjango();
+
+        Get.snackbar(
+          'Success',
+          'Library bootstrapped successfully',
+          backgroundColor: Colors.green[100],
+          colorText: Colors.green[800],
+        );
+      } else {
+        Get.snackbar(
+          'Warning',
+          'Library bootstrap completed with warnings',
+          backgroundColor: Colors.orange[100],
+          colorText: Colors.orange[800],
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to bootstrap library: $e',
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[800],
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

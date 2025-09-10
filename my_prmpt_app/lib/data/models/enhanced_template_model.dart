@@ -5,7 +5,7 @@ import '../../domain/models/ai_metadata.dart';
 
 part 'enhanced_template_model.g.dart';
 
-@HiveType(typeId: 10)
+@HiveType(typeId: 8)
 class EnhancedTemplateModel extends HiveObject {
   @HiveField(0)
   String id;
