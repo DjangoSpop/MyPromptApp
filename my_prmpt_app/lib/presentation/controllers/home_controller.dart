@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../data/models/template_api_models.dart';
-import '../../data/services/django_api_service.dart';
+import '../../data/services/api/django_api_service.dart';
 import '../../data/services/hybrid_template_service.dart';
-import '../../data/services/unified_api_service.dart';
 
 /// Controller for home page template management
 class HomeController extends GetxController {
   final HybridTemplateService _templateService =
       Get.find<HybridTemplateService>();
-  final DjangoApiService _djangoApiService = Get.find<DjangoApiService>();
-  final UnifiedApiService _unifiedApiService = Get.find<UnifiedApiService>();
+  final DjangoApiService _apiService = DjangoApiService();
 
   final RxList<TemplateListItem> templates = <TemplateListItem>[].obs;
   final RxList<TemplateListItem> filteredTemplates = <TemplateListItem>[].obs;
@@ -25,6 +23,11 @@ class HomeController extends GetxController {
   // Template statistics
   final RxInt totalTemplates = 0.obs;
   final RxMap<String, int> templatesByCategory = <String, int>{}.obs;
+
+  // Pagination
+  final RxInt currentPage = 1.obs;
+  final RxInt totalPages = 1.obs;
+  final RxBool hasMore = true.obs;
   void fetchTemplates() async {
     try {
       isLoading.value = true;
@@ -229,89 +232,155 @@ class HomeController extends GetxController {
   // Django Backend Integration
   // ================================
 
-  /// Test connection to Django backend
-  Future<bool> testDjangoConnection() async {
+  /// Fetch templates from Django backend with pagination
+  Future<void> fetchTemplatesFromDjango({
+    int page = 1,
+    String? category,
+    List<String>? tags,
+    String? search,
+  }) async {
     try {
-      isLoading.value = true;
-      final isConnected = await _djangoApiService.testConnection();
+      if (page == 1) {
+        isLoading.value = true;
+      }
 
-      if (isConnected) {
-        Get.snackbar(
-          'Success',
-          'Connected to Django backend successfully',
-          backgroundColor: Colors.green[100],
-          colorText: Colors.green[800],
-        );
+      // Get templates from Django API
+      final response = await _apiService.getTemplates(
+        page: page,
+        pageSize: 20,
+        category: category,
+        tags: tags,
+        search: search,
+      );
+
+      if (response.success && response.data != null) {
+        final results = response.data!['results'] as List?;
+        if (results != null && results.isNotEmpty) {
+          // Convert API templates to local format
+          final apiTemplates = results.map((item) {
+            return TemplateListItem(
+              id: item['id']?.toString() ?? '',
+              title: item['title']?.toString() ?? 'Untitled',
+              description: item['description']?.toString() ?? '',
+              category: item['category']?.toString() ?? 'General',
+              tags: (item['tags'] as List?)?.map((t) => t.toString()).toList() ?? [],
+              rating: (item['rating_avg'] ?? 0.0).toDouble(),
+              usageCount: item['usage_count'] ?? 0,
+              createdAt: DateTime.tryParse(item['created_at']?.toString() ?? '') ?? DateTime.now(),
+              isPublic: item['is_public'] ?? true,
+              isPremium: item['is_premium'] ?? false,
+              fields: [],
+            );
+          }).toList();
+
+          if (page == 1) {
+            templates.assignAll(apiTemplates);
+          } else {
+            templates.addAll(apiTemplates);
+          }
+
+          // Update pagination info
+          currentPage.value = page;
+          final totalCount = response.data!['count'] as int? ?? 0;
+          totalPages.value = (totalCount / 20).ceil();
+          hasMore.value = response.data!['next'] != null;
+
+          // Update categories from templates
+          final uniqueCategories = templates.map((t) => t.category).toSet().toList()..sort();
+          categories.value = ['All', ...uniqueCategories];
+
+          _filterTemplates();
+
+          if (page == 1) {
+            Get.snackbar(
+              'Success',
+              'Loaded ${apiTemplates.length} templates',
+              backgroundColor: Colors.green[100],
+              colorText: Colors.green[800],
+            );
+          }
+        } else {
+          if (page == 1) {
+            templates.clear();
+            Get.snackbar(
+              'Info',
+              'No templates found',
+              backgroundColor: Colors.blue[100],
+              colorText: Colors.blue[800],
+            );
+          }
+        }
       } else {
         Get.snackbar(
           'Error',
-          'Failed to connect to Django backend',
+          response.message ?? 'Failed to fetch templates',
           backgroundColor: Colors.red[100],
           colorText: Colors.red[800],
         );
       }
-
-      return isConnected;
     } catch (e) {
       Get.snackbar(
         'Error',
-        'Django connection error: $e',
+        'Failed to fetch templates: $e',
         backgroundColor: Colors.red[100],
         colorText: Colors.red[800],
       );
-      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  /// Fetch templates from Django backend
-  Future<void> fetchTemplatesFromDjango() async {
+  /// Load more templates (pagination)
+  Future<void> loadMore() async {
+    if (!hasMore.value || isLoading.value) return;
+    await fetchTemplatesFromDjango(
+      page: currentPage.value + 1,
+      category: selectedCategory.value == 'All' ? null : selectedCategory.value,
+      search: searchQuery.value.isEmpty ? null : searchQuery.value,
+    );
+  }
+
+  /// Fetch trending templates
+  Future<void> fetchTrendingTemplates() async {
     try {
       isLoading.value = true;
 
-      // Get templates from Django API
-      final response = await _unifiedApiService.getTemplates();
+      final response = await _apiService.getTrendingTemplates();
 
-      if (response.results.isNotEmpty) {
-        // Convert API templates to local format
-        final apiTemplates = response.results.map((apiTemplate) {
-          return TemplateListItem(
-            id: apiTemplate.id,
-            title: apiTemplate.title,
-            description: apiTemplate.description,
-            category: apiTemplate.category?.name ?? 'General',
-            tags: apiTemplate.tags ?? [],
-            rating: apiTemplate.averageRating.toDouble(),
-            usageCount: apiTemplate.usageCount,
-            createdAt: apiTemplate.createdAt,
-            isPublic: apiTemplate.isPublic,
-            isPremium: false,
-            fields: [],
+      if (response.success && response.data != null) {
+        final results = response.data as List?;
+        if (results != null && results.isNotEmpty) {
+          final trendingTemplates = results.map((item) {
+            return TemplateListItem(
+              id: item['id']?.toString() ?? '',
+              title: item['title']?.toString() ?? 'Untitled',
+              description: item['description']?.toString() ?? '',
+              category: item['category']?.toString() ?? 'General',
+              tags: (item['tags'] as List?)?.map((t) => t.toString()).toList() ?? [],
+              rating: (item['rating_avg'] ?? 0.0).toDouble(),
+              usageCount: item['usage_count'] ?? 0,
+              createdAt: DateTime.tryParse(item['created_at']?.toString() ?? '') ?? DateTime.now(),
+              isPublic: item['is_public'] ?? true,
+              isPremium: item['is_premium'] ?? false,
+              fields: [],
+            );
+          }).toList();
+
+          templates.assignAll(trendingTemplates);
+          _filterTemplates();
+
+          Get.snackbar(
+            'Success',
+            'Loaded ${trendingTemplates.length} trending templates',
+            backgroundColor: Colors.green[100],
+            colorText: Colors.green[800],
           );
-        }).toList();
-
-        templates.assignAll(apiTemplates.cast<TemplateListItem>());
-        _filterTemplates();
-
-        Get.snackbar(
-          'Success',
-          'Loaded ${apiTemplates.length} templates from Django backend',
-          backgroundColor: Colors.green[100],
-          colorText: Colors.green[800],
-        );
-      } else {
-        Get.snackbar(
-          'Info',
-          'No templates found on Django backend',
-          backgroundColor: Colors.blue[100],
-          colorText: Colors.blue[800],
-        );
+        }
       }
     } catch (e) {
       Get.snackbar(
         'Error',
-        'Failed to fetch templates from Django: $e',
+        'Failed to fetch trending templates: $e',
         backgroundColor: Colors.red[100],
         colorText: Colors.red[800],
       );
@@ -320,96 +389,23 @@ class HomeController extends GetxController {
     }
   }
 
-  /// Search templates using Django library search
-  Future<void> searchTemplatesWithDjango(String query) async {
+  /// Fetch categories from backend
+  Future<void> fetchCategories() async {
     try {
-      isLoading.value = true;
-      searchQuery.value = query;
+      final response = await _apiService.getCategories();
 
-      final response = await _djangoApiService.searchLibrary(
-        query: query,
-        limit: 50,
-      );
-
-      if (response.containsKey('results') && response['results'] is List) {
-        final results = response['results'] as List;
-        final searchResults = results.map((item) {
-          return TemplateListItem(
-            id: item['id']?.toString() ?? '',
-            title: item['title']?.toString() ?? 'Untitled',
-            description: item['description']?.toString() ?? '',
-            category: item['category']?.toString() ?? 'General',
-            tags: (item['tags'] as List?)?.map((t) => t.toString()).toList() ??
-                [],
-            rating: (item['rating'] ?? 0.0).toDouble(),
-            usageCount: item['usage_count'] ?? 0,
-            createdAt:
-                DateTime.tryParse(item['created_at']?.toString() ?? '') ??
-                    DateTime.now(),
-            isPublic: item['is_public'] ?? true,
-            isPremium: false,
-            fields: [],
-          );
-        }).toList();
-
-        filteredTemplates.assignAll(searchResults.cast<TemplateListItem>());
-
-        Get.snackbar(
-          'Success',
-          'Found ${searchResults.length} templates matching "$query"',
-          backgroundColor: Colors.green[100],
-          colorText: Colors.green[800],
-        );
+      if (response.success && response.data != null) {
+        final categoryList = response.data as List?;
+        if (categoryList != null) {
+          final categoryNames = categoryList
+              .map((cat) => cat['name']?.toString() ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList();
+          categories.value = ['All', ...categoryNames];
+        }
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Search failed: $e',
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
-      );
-      // Fallback to local search
-      _filterTemplates();
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  /// Bootstrap library from Django backend
-  Future<void> bootstrapLibrary() async {
-    try {
-      isLoading.value = true;
-
-      final response = await _djangoApiService.bootstrapLibrary(
-        forceRefresh: true,
-      );
-
-      if (response.containsKey('status') && response['status'] == 'success') {
-        await fetchTemplatesFromDjango();
-
-        Get.snackbar(
-          'Success',
-          'Library bootstrapped successfully',
-          backgroundColor: Colors.green[100],
-          colorText: Colors.green[800],
-        );
-      } else {
-        Get.snackbar(
-          'Warning',
-          'Library bootstrap completed with warnings',
-          backgroundColor: Colors.orange[100],
-          colorText: Colors.orange[800],
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to bootstrap library: $e',
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
-      );
-    } finally {
-      isLoading.value = false;
+      debugPrint('Failed to fetch categories: $e');
     }
   }
 }
