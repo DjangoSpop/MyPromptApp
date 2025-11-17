@@ -2,11 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:promptcraft/data/models/user_model.dart';
+import 'package:promptcraft/data/services/api/django_api_service.dart';
 
-/// Authentication Service
+/// Enhanced Authentication Service with Django Backend Integration
+///
 /// Manages user authentication, session, and profile data
-/// Uses local storage (Hive) for offline-first approach
+/// with both local storage (offline) and API sync (online)
 class AuthService extends GetxService {
+  final DjangoApiService _apiService = DjangoApiService();
+
   // Observable user state
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
   final RxBool isAuthenticated = false.obs;
@@ -16,6 +20,7 @@ class AuthService extends GetxService {
   static const String _userBox = 'user_data';
   static const String _userKey = 'current_user';
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
 
   @override
   void onInit() {
@@ -38,6 +43,9 @@ class AuthService extends GetxService {
         if (kDebugMode) {
           print('✅ User loaded: ${currentUser.value?.username}');
         }
+
+        // Sync with backend if online
+        await _syncWithBackend();
       }
     } catch (e) {
       if (kDebugMode) {
@@ -46,46 +54,84 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Login with email and password
+  /// Sync local user data with backend
+  Future<void> _syncWithBackend() async {
+    try {
+      final response = await _apiService.getCurrentUser();
+      if (response.success && response.data != null) {
+        final userData = response.data!;
+        currentUser.value = UserModel.fromJson(userData);
+        await _saveUser(currentUser.value!);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠ Backend sync failed (offline mode): $e');
+      }
+    }
+  }
+
+  /// Login with email and password (Django API)
   Future<bool> login(String email, String password) async {
     try {
       isLoading.value = true;
 
-      // TODO: Replace with actual API call
-      // final response = await _apiService.login(email, password);
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      // For now, create a mock user
-      final user = UserModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      // Call Django API
+      final response = await _apiService.login(
         email: email,
-        username: email.split('@').first,
-        displayName: email.split('@').first.toUpperCase(),
-        avatarUrl: null,
-        level: 1,
-        xp: 0,
-        createdAt: DateTime.now(),
+        password: password,
       );
 
-      // Save user to storage
-      await _saveUser(user);
-
-      currentUser.value = user;
-      isAuthenticated.value = true;
-
-      if (kDebugMode) {
-        print('✅ Login successful: ${user.username}');
+      if (!response.success || response.data == null) {
+        Get.snackbar(
+          'Login Failed',
+          response.error ?? 'Invalid credentials',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return false;
       }
 
-      Get.snackbar(
-        'Welcome!',
-        'Successfully logged in as ${user.displayName}',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      // Extract tokens
+      final String? accessToken = response.data!['access'] as String?;
+      final String? refreshToken = response.data!['refresh'] as String?;
 
-      return true;
+      if (accessToken == null) {
+        Get.snackbar(
+          'Login Failed',
+          'No access token received',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return false;
+      }
+
+      // Save tokens
+      await _saveTokens(accessToken, refreshToken);
+
+      // Get user profile
+      final profileResponse = await _apiService.getCurrentUser();
+      if (profileResponse.success && profileResponse.data != null) {
+        final user = UserModel.fromJson(profileResponse.data!);
+        currentUser.value = user;
+        isAuthenticated.value = true;
+
+        await _saveUser(user);
+
+        if (kDebugMode) {
+          print('✅ Login successful: ${user.username}');
+        }
+
+        Get.snackbar(
+          'Welcome Back!',
+          'Successfully logged in as ${user.displayName}',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+
+        // Log activity (update streak)
+        await _apiService.logActivity();
+
+        return true;
+      }
+
+      return false;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Login failed: $e');
@@ -93,7 +139,7 @@ class AuthService extends GetxService {
 
       Get.snackbar(
         'Login Failed',
-        'Invalid credentials. Please try again.',
+        'Network error. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
       );
 
@@ -103,7 +149,7 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Register new user
+  /// Register new user (Django API)
   Future<bool> register({
     required String email,
     required String password,
@@ -112,41 +158,35 @@ class AuthService extends GetxService {
     try {
       isLoading.value = true;
 
-      // TODO: Replace with actual API call
-      // final response = await _apiService.register(email, password, username);
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Create new user
-      final user = UserModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      // Call Django API
+      final response = await _apiService.register(
         email: email,
         username: username,
-        displayName: username.toUpperCase(),
-        avatarUrl: null,
-        level: 1,
-        xp: 0,
-        createdAt: DateTime.now(),
+        password: password,
+        passwordConfirm: password,
       );
 
-      // Save user to storage
-      await _saveUser(user);
-
-      currentUser.value = user;
-      isAuthenticated.value = true;
+      if (!response.success || response.data == null) {
+        Get.snackbar(
+          'Registration Failed',
+          response.error ?? 'Could not create account',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return false;
+      }
 
       if (kDebugMode) {
-        print('✅ Registration successful: ${user.username}');
+        print('✅ Registration successful');
       }
 
       Get.snackbar(
         'Account Created!',
-        'Welcome to PromptCraft, ${user.displayName}!',
+        'Welcome to PromptCraft! Please log in.',
         snackPosition: SnackPosition.BOTTOM,
       );
 
-      return true;
+      // Auto-login after registration
+      return await login(email, password);
     } catch (e) {
       if (kDebugMode) {
         print('❌ Registration failed: $e');
@@ -154,7 +194,7 @@ class AuthService extends GetxService {
 
       Get.snackbar(
         'Registration Failed',
-        'Could not create account. Please try again.',
+        'Network error. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
       );
 
@@ -173,6 +213,7 @@ class AuthService extends GetxService {
       final box = await Hive.openBox(_userBox);
       await box.delete(_userKey);
       await box.delete(_tokenKey);
+      await box.delete(_refreshTokenKey);
 
       // Clear state
       currentUser.value = null;
@@ -208,44 +249,93 @@ class AuthService extends GetxService {
     }
   }
 
+  /// Save authentication tokens
+  Future<void> _saveTokens(String accessToken, String? refreshToken) async {
+    try {
+      final box = await Hive.openBox(_userBox);
+      await box.put(_tokenKey, accessToken);
+      if (refreshToken != null) {
+        await box.put(_refreshTokenKey, refreshToken);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠ Failed to save tokens: $e');
+      }
+    }
+  }
+
+  /// Get stored access token
+  Future<String?> getAccessToken() async {
+    try {
+      final box = await Hive.openBox(_userBox);
+      return box.get(_tokenKey) as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get stored refresh token
+  Future<String?> getRefreshToken() async {
+    try {
+      final box = await Hive.openBox(_userBox);
+      return box.get(_refreshTokenKey) as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Refresh access token
+  Future<bool> refreshAccessToken() async {
+    try {
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null) return false;
+
+      final response = await _apiService.refreshToken(refreshToken);
+      if (response.success && response.data != null) {
+        final newAccessToken = response.data!['access'] as String?;
+        if (newAccessToken != null) {
+          await _saveTokens(newAccessToken, null);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Update user profile
   Future<bool> updateProfile({
     String? displayName,
     String? avatarUrl,
   }) async {
-    try {
-      if (currentUser.value == null) return false;
+    if (currentUser.value == null) return false;
 
+    try {
       isLoading.value = true;
 
-      // TODO: Replace with actual API call
-      // final response = await _apiService.updateProfile(...);
+      final data = <String, dynamic>{};
+      if (displayName != null) data['display_name'] = displayName;
+      if (avatarUrl != null) data['avatar_url'] = avatarUrl;
 
-      // Simulate API call
-      await Future.delayed(const Duration(milliseconds: 500));
+      final response = await _apiService.updateProfile(data);
 
-      // Update local user
-      final updatedUser = UserModel(
-        id: currentUser.value!.id,
-        email: currentUser.value!.email,
-        username: currentUser.value!.username,
-        displayName: displayName ?? currentUser.value!.displayName,
-        avatarUrl: avatarUrl ?? currentUser.value!.avatarUrl,
-        level: currentUser.value!.level,
-        xp: currentUser.value!.xp,
-        createdAt: currentUser.value!.createdAt,
-      );
+      if (response.success && response.data != null) {
+        final updatedUser = UserModel.fromJson(response.data!['user']);
+        currentUser.value = updatedUser;
+        await _saveUser(updatedUser);
 
-      await _saveUser(updatedUser);
-      currentUser.value = updatedUser;
+        Get.snackbar(
+          'Profile Updated',
+          'Your profile has been updated successfully',
+          snackPosition: SnackPosition.BOTTOM,
+        );
 
-      Get.snackbar(
-        'Profile Updated',
-        'Your profile has been updated successfully',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+        return true;
+      }
 
-      return true;
+      return false;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Profile update failed: $e');
@@ -263,48 +353,34 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Add XP to user (gamification)
+  /// Add XP to user (synced with backend)
   Future<void> addXP(int amount) async {
     if (currentUser.value == null) return;
 
-    try {
-      final currentXP = currentUser.value!.xp;
-      final newXP = currentXP + amount;
-      final currentLevel = currentUser.value!.level;
+    // Update locally first
+    final currentXP = currentUser.value!.xp;
+    final newXP = currentXP + amount;
+    final currentLevel = currentUser.value!.level;
+    final newLevel = (newXP / 100).floor() + 1;
+    final leveledUp = newLevel > currentLevel;
 
-      // Calculate new level (100 XP per level)
-      final newLevel = (newXP / 100).floor() + 1;
+    currentUser.value = currentUser.value!.copyWith(
+      xp: newXP,
+      level: newLevel,
+    );
 
-      // Check for level up
-      final leveledUp = newLevel > currentLevel;
+    await _saveUser(currentUser.value!);
 
-      // Update user
-      final updatedUser = UserModel(
-        id: currentUser.value!.id,
-        email: currentUser.value!.email,
-        username: currentUser.value!.username,
-        displayName: currentUser.value!.displayName,
-        avatarUrl: currentUser.value!.avatarUrl,
-        level: newLevel,
-        xp: newXP,
-        createdAt: currentUser.value!.createdAt,
+    if (leveledUp) {
+      Get.snackbar(
+        '🎉 Level Up!',
+        'You reached level $newLevel!',
+        snackPosition: SnackPosition.BOTTOM,
       );
-
-      await _saveUser(updatedUser);
-      currentUser.value = updatedUser;
-
-      if (leveledUp) {
-        Get.snackbar(
-          '🎉 Level Up!',
-          'You reached level $newLevel!',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('⚠ Failed to add XP: $e');
-      }
     }
+
+    // Sync with backend
+    await _syncWithBackend();
   }
 
   /// Check if user is logged in
