@@ -1,36 +1,21 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
+// App imports
 import 'app/routes/app_routes.dart';
-import 'core/bindings/app_bindings.dart';
-// Core imports
-import 'core/design_system/discord_design_system.dart';
-import 'core/services/app_initialization_service.dart';
+import 'app/bindings/app_bindings.dart';
+import 'app/themes/discord_design_system.dart';
+import 'app/services/app_initialization_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize core services first
-  Get.put(AppInitializationService(), permanent: true);
+  // Initialize app services (Hive, adapters, boxes)
+  await AppInitializationService.initialize();
 
   runApp(const PromptCraftApp());
 }
-
-/// Initialize all services and dependencies
-// Future<void> _initializeServices() async {
-//   try {
-//     // Initialize bindings which will setup all dependencies
-
-//     final bindings = InitialBindings();
-//     await bindings.initializeAsync();
-
-//     print('Services initialized successfully');
-//   } catch (e) {
-//     print('Service initialization error: $e');
-//   }
-// }
 
 class PromptCraftApp extends StatelessWidget {
   const PromptCraftApp({super.key});
@@ -38,24 +23,63 @@ class PromptCraftApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'PromptTemple - AI Prompt Management System',
-      theme: DiscordDesignSystem.darkTheme,
+      title: 'PromptCraft - AI Prompt Engineering Platform',
+
+      // Theme
+      theme: DiscordDesignSystem.lightTheme,
       darkTheme: DiscordDesignSystem.darkTheme,
       themeMode: ThemeMode.dark,
-      initialRoute: '/splash',
-      getPages: AppRoutes.routes,
+
+      // Dependency Injection
       initialBinding: AppBindings(),
+
+      // Routing
+      initialRoute: AppRoutes.splash,
+      getPages: AppRoutes.routes,
+
+      // Debug & Transitions
       debugShowCheckedModeBanner: false,
-      defaultTransition: Transition.fade,
-      transitionDuration: const Duration(milliseconds: 200),
-      // Error handling for routing
+      defaultTransition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 250),
+
+      // Error handling
       unknownRoute: GetPage(
         name: '/notfound',
-        page: () => const Scaffold(
+        page: () => Scaffold(
+          backgroundColor: DiscordDesignSystem.backgroundPrimary,
           body: Center(
-            child: Text(
-              'Page not found',
-              style: TextStyle(color: Colors.white),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: DiscordDesignSystem.red,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '404 - Page Not Found',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: DiscordDesignSystem.textNormal,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The page you\'re looking for doesn\'t exist.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: DiscordDesignSystem.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => Get.offAllNamed(AppRoutes.home),
+                  icon: const Icon(Icons.home),
+                  label: const Text('Go Home'),
+                ),
+              ],
             ),
           ),
         ),
